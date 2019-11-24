@@ -1,0 +1,28 @@
+{
+  "name": "service_loop_server",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "node ./bin/www",
+    "test": "nyc jasmine spec/*.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "bcrypt": "^3.0.7",
+    "cors": "^2.8.5",
+    "express": "^4.17.1",
+    "generate-password": "^1.4.2",
+    "jsonwebtoken": "^8.5.1",
+    "node-openssl-p12": "^0.1.8",
+    "pdfkit": "^0.10.0",
+    "validator": "^12.1.0",
+    "xooa-sdk": "^1.1.1"
+  },
+  "devDependencies": {
+    "jasmine": "^3.5.0",
+    "jasmine-console-reporter": "^3.1.0",
+    "nyc": "^14.1.1"
+  }
+}
