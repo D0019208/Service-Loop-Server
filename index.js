@@ -27,7 +27,84 @@ app.post('/create_and_sign_pdf', async (req, res) => {
   }
 });
 
-app.post('/login', async (req, res) => {
+app.post('/check_user_details_correct', async (req, res) => {
+  const login = require('./services/login');
+  console.log(await login.check_user_credentials(req.body.users_email, req.body.users_password));
+  res.json(await login.check_user_credentials(req.body.users_email, req.body.users_password));
+  return;
+});
+
+app.post('/verify_code', async (req, res) => {
+  const validator = require('validator');
+
+  const token = req.body.verification_token;
+  const code = req.body.verification_code;
+  const verification_phone_number = validator.escape(req.body.verification_phone_number).replace(/\s/g, '');
+
+  var ringcaptcha = require('ringcaptcha-nodejs');
+  ringcaptcha.app_key = '3i1ivu6elylunazito7y';//Add Your App Key
+  ringcaptcha.api_key = '112a600ad7ce7b679505469dd5079444cbdc1344'; //Add Your API Key
+  ringcaptcha.secret_key = '3i5u7ezara9o5yhy6u8a'; //Add Your Secret Key
+
+  data = { mobile: verification_phone_number, country_code: '+353', token: token, code: code }
+  ringcaptcha.verifyingPin(data, function (response) {
+    res.json(response);
+    console.log(response);
+    return;
+  });
+
+  //res.json(await login.check_user_credentials(req.body.users_email, req.body.users_password));
+  return;
+});
+
+
+app.post('/verify_register_input', async (req, res) => {
+  const validator = require('validator');
+  const filter_registration_input = require('./services/registration/filter_registration_input');
+  //validator.escape(req.body.users_first_name + " " + req.body.users_last_name)
+  let filtering_response = await filter_registration_input.validate_registration_input(req.body.users_password, req.body.users_password_confirm, validator.escape(req.body.users_email), validator.escape(req.body.users_phone_number));
+
+  res.json(JSON.stringify(filtering_response));
+  return;
+});
+
+
+app.post('/resend_sms_verification', async (req, res) => {
+  const validator = require('validator');
+  const verification_phone_number = validator.escape(req.body.verification_phone_number).replace(/\s/g, '');
+
+  var ringcaptcha = require('ringcaptcha-nodejs');
+  ringcaptcha.app_key = '3i1ivu6elylunazito7y';//Add Your App Key
+  ringcaptcha.api_key = '112a600ad7ce7b679505469dd5079444cbdc1344'; //Add Your API Key
+  ringcaptcha.secret_key = '3i5u7ezara9o5yhy6u8a'; //Add Your Secret Key
+
+  data = { mobile: verification_phone_number, country_code: '+353', service: 'SMS' }
+  ringcaptcha.reSendPINCode(data, function (response) {
+    res.json(response);
+  });
+
+  return;
+});
+
+app.post('/send_sms_verification', async (req, res) => {
+  const validator = require('validator');
+  const verification_phone_number = validator.escape(req.body.verification_phone_number).replace(/\s/g, '');
+
+  var ringcaptcha = require('ringcaptcha-nodejs');
+  ringcaptcha.app_key = '3i1ivu6elylunazito7y';//Add Your App Key
+  ringcaptcha.api_key = '112a600ad7ce7b679505469dd5079444cbdc1344'; //Add Your API Key
+  ringcaptcha.secret_key = '3i5u7ezara9o5yhy6u8a'; //Add Your Secret Key
+
+  data = { mobile: verification_phone_number, country_code: '+353', service: 'SMS' }
+  ringcaptcha.sendingPINCode(data, function (response) {
+    console.log(response);
+    res.json(response);
+  });
+
+  return;
+});
+
+app.post('/login_user', async (req, res) => {
   const login = require('./services/login');
 
   res.json(await login.login_user(req.body.users_email, req.body.users_password));
@@ -42,20 +119,17 @@ app.post('/verify_token', (req, res) => {
     //process.env.JWT_SECRET
     let JWT_SECRET = 'addjsonwebtokensecretherelikeQuiscustodietipsoscustodes';
     let decoded = jwt.verify(token, JWT_SECRET);
-    
-    res.json("Success");
 
+    res.json("Session valid");
     return;
   } catch (err) {
-    console.log(err)
-
-    if(err.message === "jwt expired") {
+    if (err.message === "jwt expired") {
       res.json("Session timeout");
       return;
-    } else if(err.message === "jwt malformed") {
+    } else if (err.message === "jwt malformed") {
       res.json("Session corrupted");
       return;
-    }  else {
+    } else {
       res.json("Unspecified error occured");
       return;
     }
@@ -63,14 +137,28 @@ app.post('/verify_token', (req, res) => {
 });
 
 app.post('/register', async (req, res) => {
-  const register_new_user = require('./services/register');
+  const register_new_user = require('./services/registration/register');
   const validator = require('validator');
 
-  let result = await register_new_user.create_new_user(validator.escape(req.body.users_first_name + " " + req.body.users_last_name), req.body.users_password, req.body.users_password_confirm, validator.escape(req.body.users_email), validator.escape(req.body.users_phone_number), "Louth", "Drogheda", req.body.users_skills);
-  res.json(result);
+  let result = await register_new_user.create_new_user(req.body.users_password, req.body.users_password_confirm, validator.escape(req.body.users_email), validator.escape(req.body.users_phone_number));
+  res.json(JSON.stringify(result));
   return;
 });
 
-app.listen(3000, function () {
+// (async () => {
+//   const register_new_user = require('./services/registration/register');
+//   const validator = require('validator');
+
+//   let result = await register_new_user.create_new_user("12345aA@", "12345aA@", validator.escape("nikito888@gmail.com"), validator.escape("0899854571"));
+//   console.log(result);
+//   //res.json(JSON.stringify(result));
+//   return;
+// })();
+
+// app.listen(3000, function () {
+//   console.log('Example app started!');
+// });
+
+app.listen(process.env.ALWAYSDATA_HTTPD_PORT, process.env.ALWAYSDATA_HTTPD_IP, function () {
   console.log('Example app started!');
-}); 
+});

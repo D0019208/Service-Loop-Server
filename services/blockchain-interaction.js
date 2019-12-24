@@ -28,7 +28,7 @@ async function add_transaction_to_blockchain(data_to_add) {
   console.log(error, pendingResponse, data);
 }
 
-//Gte a value FROM blockchain
+//Get a value FROM blockchain
 async function get_from_blockchain_by_tx_id(tx_id) {
   var [error, pendingResponse, data] = await xooaClient.getTransactionByTransactionId(tx_id, {});
   console.log(data);
@@ -40,12 +40,12 @@ console.log(error, pendingResponse, data);
 }
 
 async function get_by_key() {
-  var [error, pendingResponse, data] = await xooaClient.invoke("get_by_key", {}, { args: ["2", "THIS IS A TEST!"] });
+  var [error, pendingResponse, data] = await xooaClient.invoke("get_by_key", {}, { args: ["CA2", "This is a test for CA2"] });
 console.log(error, pendingResponse, data);
 }
 
-add_new_identity_to_blockchain("John Wick ID", "John Wick", "Assassin")
+//add_new_identity_to_blockchain("Frank Keenan User", "Frank Keenan", "")
 //get_from_blockchain_by_block_number("66");
 //get_from_blockchain_by_tx_id('f2caf767581ac753b709262e514662ca9812401a22bea2276ff34c7a688adf17')
-//add_transaction_to_blockchain(["2", "THIS IS A TEST!"]);
+//add_transaction_to_blockchain(["CA2", "This is a test for CA2"]);
 //get_by_key();

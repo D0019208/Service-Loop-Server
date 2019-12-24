@@ -9,11 +9,11 @@
  * 
  * @param {This is the full name of the user} users_name 
  * @param {This is the password of the user which we will/have hashed} users_password 
- * @param {This is the email of the user} users_email
- * @param {This is the county in which the user lives} users_county
- * @param {This is the town in which the user lives} users_town
+ * @param {This is the email of the user} users_email 
  */
-let create_user_certificate = async function create_user_certificate(user_name, user_id, user_certificate_password, user_email, country, county, town, serial) {
+let create_user_certificate = async function create_user_certificate(user_id, user_certificate_password, user_email) {
+    let error;
+
     try {
         /*
           Variables for when the certificate creation is done,
@@ -22,43 +22,43 @@ let create_user_certificate = async function create_user_certificate(user_name, 
           file path.
         */
         let success = false;
-        let error;
+        
 
         //Options for creating the certificate
         let p12 = require('node-openssl-p12').createClientSSL;
         let p12options = {
             bitSize: 2048,
-            clientFileName: 'client' + user_id,
-            C: country,
-            ST: county,
-            L: town,
+            clientFileName: 'client_' + user_id,
+            C: "IE",
+            ST: "Louth",
+            L: "Dundalk",
             O: 'Service Loop',
             OU: 'www.serviceloop.com',
-            CN: user_name,
+            CN: "Student",
             emailAddress: user_email,
             clientPass: user_certificate_password,
             caFileName: 'ca',
-            serial: serial,
+            serial: "01",
             days: 365
         };
-
+        
         //When done creating file, set success to true to then return the file path
         await p12(p12options).done((options, sha1fingerprint) => {
             success = true;
         }).fail((err) => {
-            success = false;
+            success = false; 
             error = err.message;
         }); 
 
         if (success) {
-            return 'ssl/client' + user_id + '.p12';
+            return 'ssl/client_' + user_id + '.p12';
         } else {
-            //return 'Digital Certificate creation failed! ' + error.message + '!';
+            //return 'Digital Certificate creation failed! ' + error.message + '!'; 
             return 'Digital Certificate creation failed.';
         }
     } catch (err) {
         //return 'Digital Certificate creation failed! ' + err.message + '!';
-        return 'Digital Certificate creation failed.';
+        return err.message;
     }
 }
 
