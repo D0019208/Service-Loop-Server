@@ -15,7 +15,7 @@ let check_user_credentials = async function check_user_credentials(users_email, 
     let result = {};
 
     const database = require('./database');
-    const database_connection = new database("Tutum_Nichita", "EajHKuViBCaL62Sj", "service_loop");
+    const database_connection = new database("Tutum_Nichita", process.env.MONGOOSE_KEY, "service_loop");
     let database_connect_response = await database_connection.connect();
 
     let password_hash = await database_connection.find_id_by_email(users_email);
@@ -23,7 +23,7 @@ let check_user_credentials = async function check_user_credentials(users_email, 
     if (password_hash.response === "No user found!") {
         return false;
     } else {
-        return await bcrypt.compare(users_password, password_hash.response.user_password);
+        return {password_matches: await bcrypt.compare(users_password, password_hash.response.user_password), user: password_hash};
     }
 
 }
@@ -37,7 +37,7 @@ let login_user = async function login_user(users_email, users_password) {
 
     let password_correct = await check_user_credentials(users_email, users_password);
 
-    if (password_correct) {
+    if (password_correct.password_matches) {
         const payload = { user: users_email };
         const options = { expiresIn: '1h', issuer: 'https://serviceloop.com' };
         const secret = JWT_SECRET;
@@ -47,6 +47,12 @@ let login_user = async function login_user(users_email, users_password) {
         result.token = token;
         result.status = 200;
         result.result = 'Login successful.';
+        
+        result.user_name = password_correct.user.response.users_full_name;
+        result.user_tutor = password_correct.user.response.user_tutor;
+        if(result.user_tutor) {
+            result.user_modules = password_correct.user.response.user_modules;
+        }
 
         return result;
     } else {

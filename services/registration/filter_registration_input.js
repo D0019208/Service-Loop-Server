@@ -11,12 +11,12 @@
  * @param {This is the county in which the user lives} users_county
  * @param {This is the town in which the user lives} users_town
  */
-let filter_registration_input = function validate_registration_input(users_password, users_password_confirm, users_email, users_phone_number) {
+let filter_registration_input = function validate_registration_input(users_full_name, users_password, users_password_confirm, users_email, users_phone_number) {
     const validator = require('validator');
     let validation_successful = false;
     let data_all_present = false;
     
-    if (users_password.length === 0 || users_password_confirm.length === 0 || users_email.length === 0 || users_phone_number.length === 0) {
+    if (users_full_name.length === 0 || users_password.length === 0 || users_password_confirm.length === 0 || users_email.length === 0 || users_phone_number.length === 0) {
         return { error: true, response: "Please fill in all required fields before proceeding." };
     }
 
@@ -45,7 +45,7 @@ let filter_registration_input = function validate_registration_input(users_passw
         //return {error: true, response: "pre_db"}
         //Setup database connection and model for registrating new user
         const database = require('../database');
-        const database_connection = new database("Tutum_Nichita", "EajHKuViBCaL62Sj", "service_loop"); 
+        const database_connection = new database("Tutum_Nichita", process.env.MONGOOSE_KEY, "service_loop"); 
         
         try {
             return new Promise(async (resolve, reject) => {
@@ -55,7 +55,7 @@ let filter_registration_input = function validate_registration_input(users_passw
                 let find_if_email_unique_results = await database_connection.find_id_by_email(users_email);
 
                 if (find_if_email_unique_results.error) { 
-                    reject({ error: true, response: find_if_email_unique_results.response });
+                    resolve({ error: true, response: find_if_email_unique_results.response });
                 } else { 
                     if(find_if_email_unique_results.response == "No user found!") { 
                         resolve({error: false, response: "Proceed."});

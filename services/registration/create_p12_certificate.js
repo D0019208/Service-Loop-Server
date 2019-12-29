@@ -11,7 +11,7 @@
  * @param {This is the password of the user which we will/have hashed} users_password 
  * @param {This is the email of the user} users_email 
  */
-let create_user_certificate = async function create_user_certificate(user_id, user_certificate_password, user_email) {
+let create_user_certificate = async function create_user_certificate(user_id, user_certificate_password, user_email, users_full_name) {
     let error;
 
     try {
@@ -34,7 +34,7 @@ let create_user_certificate = async function create_user_certificate(user_id, us
             L: "Dundalk",
             O: 'Service Loop',
             OU: 'www.serviceloop.com',
-            CN: "Student",
+            CN: users_full_name,
             emailAddress: user_email,
             clientPass: user_certificate_password,
             caFileName: 'ca',

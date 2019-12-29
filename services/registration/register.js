@@ -9,15 +9,7 @@
  * @param {This is the password of the user which we have hashed} users_password 
  * @param {This is the email of the user} users_email
  */
-let create_new_user = async function create_new_user(users_password, users_password_confirm, users_email, users_phone_number) {
-    // const mongoose = require('mongoose');
-    // const userModel = require('../../models/users');
-    // mongoose.connect('mongodb+srv://Tutum_Nichita:EajHKuViBCaL62Sj@tutum-qips2.azure.mongodb.net/service_loop?retryWrites=true&w=majority', {
-    //   useNewUrlParser: true,
-    //   useUnifiedTopology: true
-    // });
-
-
+let create_new_user = async function create_new_user(users_full_name, users_password, users_password_confirm, users_email, users_phone_number) { 
     const users_password_hash = (users_password) => {
         return new Promise((resolve, reject) => {
             const bcrypt = require('bcrypt');
@@ -31,11 +23,11 @@ let create_new_user = async function create_new_user(users_password, users_passw
         });
     }
 
-    const insert_user_into_db = (database_connection, users_email, users_phone_number) => {
+    const insert_user_into_db = (database_connection, users_full_name, users_email, users_phone_number) => {
         return new Promise(async (resolve, reject) => {
             //resolve({ error: false, response: "New user registered successfully." });
             //return;
-            let response = await database_connection.register_new_user(users_email, users_phone_number);
+            let response = await database_connection.register_new_user(users_full_name, users_email, users_phone_number);
 
             if (response.error) {
                 console.log(err);
@@ -47,7 +39,7 @@ let create_new_user = async function create_new_user(users_password, users_passw
         });
     }
 
-    const p12_certificate_response = (database_connection, users_email) => {
+    const p12_certificate_response = (database_connection, users_full_name, users_email) => {
         return new Promise(async (resolve, reject) => {
             const create_p12_certificate = require('./create_p12_certificate');
             const generator = require('generate-password');
@@ -70,7 +62,7 @@ let create_new_user = async function create_new_user(users_password, users_passw
                         let user_id = find_user_id_results.response._id;
                         
                         //Consider looking into wtf is a serial number
-                        let response = await create_p12_certificate.create_user_certificate(user_id, users_certificate_password, users_email);
+                        let response = await create_p12_certificate.create_user_certificate(user_id, users_certificate_password, users_email, users_full_name);
 
                         //let response = "IDK";
                         if (response !== "Digital Certificate creation failed.") {
@@ -81,6 +73,8 @@ let create_new_user = async function create_new_user(users_password, users_passw
                     }
                 }
              } catch (err) {
+                database_connection.disconnect();
+                
                  console.log(err)
                  resolve({ error: true, response: err });
              }
@@ -99,7 +93,7 @@ let create_new_user = async function create_new_user(users_password, users_passw
     const filter_registration_input = require('./filter_registration_input');
 
     //Valiate user data
-    let filtering_response = await filter_registration_input.validate_registration_input(users_password, users_password_confirm, users_email, users_phone_number);
+    let filtering_response = await filter_registration_input.validate_registration_input(users_full_name, users_password, users_password_confirm, users_email, users_phone_number);
 
     if (filtering_response.error) {
         console.log("Exit")
@@ -108,17 +102,17 @@ let create_new_user = async function create_new_user(users_password, users_passw
 
     //Setup database connection and model for registrating new user
     const database = require('../database');
-    const database_connection = new database("Tutum_Nichita", "EajHKuViBCaL62Sj", "service_loop");
+    const database_connection = new database("Tutum_Nichita", process.env.MONGOOSE_KEY, "service_loop");
 
     try {
         let database_connect_response = await database_connection.connect();
 
         console.log(database_connect_response);
 
-        let user_insert_response = await insert_user_into_db(database_connection, users_email, users_phone_number);
+        let user_insert_response = await insert_user_into_db(database_connection, users_full_name, users_email, users_phone_number);
 
         if (!user_insert_response.error) {
-            let promise_array = [users_password_hash(users_password), p12_certificate_response(database_connection, users_email)];
+            let promise_array = [users_password_hash(users_password), p12_certificate_response(database_connection, users_full_name, users_email)];
 
             return Promise.all(promise_array)
                 .then(async result => { 
@@ -137,13 +131,16 @@ let create_new_user = async function create_new_user(users_password, users_passw
                     }
                     
                     let update_response = await database_connection.update_new_users_details(users_email, password_hash, digital_certificate_path, digital_certificate_password);
+                    database_connection.disconnect();
                     return update_response;
                 })
                 .catch((error) => {
+                    database_connection.disconnect();
                     console.log("Promises rejected")
                     return {error: true, response: "error"};
                 });
         } else {
+            database_connection.disconnect();
             console.log(user_insert_response.response);
             return;
         }

@@ -9,6 +9,21 @@ function back_to_main_thread(res, pdf_path) {
   res.json(pdf_path);
 }
 
+function arrayContainsSameValues(arr, arr2) {
+  return arr.every(i => arr2.includes(i));
+}
+
+Array.prototype.remove = function () {
+  var what, a = arguments, L = a.length, ax;
+  while (L && this.length) {
+    what = a[--L];
+    while ((ax = this.indexOf(what)) !== -1) {
+      this.splice(ax, 1);
+    }
+  }
+  return this;
+};
+
 app.post('/create_and_sign_pdf', async (req, res) => {
   const Digital_Signature = require('./services/Digital_Signature');
   const signature_pdf = new Digital_Signature();
@@ -62,7 +77,7 @@ app.post('/verify_register_input', async (req, res) => {
   const validator = require('validator');
   const filter_registration_input = require('./services/registration/filter_registration_input');
   //validator.escape(req.body.users_first_name + " " + req.body.users_last_name)
-  let filtering_response = await filter_registration_input.validate_registration_input(req.body.users_password, req.body.users_password_confirm, validator.escape(req.body.users_email), validator.escape(req.body.users_phone_number));
+  let filtering_response = await filter_registration_input.validate_registration_input(validator.escape(req.body.users_full_name), req.body.users_password, req.body.users_password_confirm, validator.escape(req.body.users_email), validator.escape(req.body.users_phone_number));
 
   res.json(JSON.stringify(filtering_response));
   return;
@@ -113,7 +128,7 @@ app.post('/login_user', async (req, res) => {
 
 app.post('/verify_token', (req, res) => {
   const jwt = require('jsonwebtoken');
-  let token = JSON.parse(req.body.token);
+  let token = req.body.token;
 
   try {
     //process.env.JWT_SECRET
@@ -140,25 +155,181 @@ app.post('/register', async (req, res) => {
   const register_new_user = require('./services/registration/register');
   const validator = require('validator');
 
-  let result = await register_new_user.create_new_user(req.body.users_password, req.body.users_password_confirm, validator.escape(req.body.users_email), validator.escape(req.body.users_phone_number));
+  let result = await register_new_user.create_new_user(validator.escape(req.body.users_full_name), req.body.users_password, req.body.users_password_confirm, validator.escape(req.body.users_email), validator.escape(req.body.users_phone_number));
   res.json(JSON.stringify(result));
   return;
 });
 
-// (async () => {
-//   const register_new_user = require('./services/registration/register');
-//   const validator = require('validator');
+app.post('/appply_to_be_tutor', async (req, res) => {
+  try {
+    let database = require('./services/database')
+    const validator = require('validator');
 
-//   let result = await register_new_user.create_new_user("12345aA@", "12345aA@", validator.escape("nikito888@gmail.com"), validator.escape("0899854571"));
-//   console.log(result);
-//   //res.json(JSON.stringify(result));
+    let tutor_email = req.body.users_email;
+    let tutor_skills = req.body.users_skills;
+
+    const database_connection = new database("Tutum_Nichita", process.env.MONGOOSE_KEY, "service_loop");
+    let db_con_response = await database_connection.connect();
+
+    res.json(await database_connection.elevate_user_to_tutor(tutor_email, tutor_skills));
+    return;
+  } catch (ex) {
+    res.json(ex);
+    return;
+  }
+
+});
+
+app.post('/request_tutorial', async (req, res) => {
+  let database = require('./services/database')
+  const validator = require('validator');
+
+  const database_connection = new database("Tutum_Nichita", process.env.MONGOOSE_KEY, "service_loop");
+  let db_con_response = await database_connection.connect();
+
+  for (var key in req.body) {
+    if (req.body[key] === "") {
+      res.json({ error: true, response: "Please fill in all fields before proceeding." });
+      return;
+    }
+  }
+
+  res.json(await database_connection.add_tutorial(req.body.request_title, req.body.request_description, req.body.request_modules, req.body.users_email));
+  return;
+});
+
+app.post('/get_all_notifications', async (req, res) => {
+  let database = require('./services/database')
+  const validator = require('validator');
+
+  const database_connection = new database("Tutum_Nichita", process.env.MONGOOSE_KEY, "service_loop");
+  let db_con_response = await database_connection.connect();
+
+  for (var key in req.body) {
+    if (req.body[key] === "") {
+      res.json({ error: true, response: "Please fill in all fields before proceeding." });
+      return;
+    }
+  }
+
+  res.json(await database_connection.get_all_users_notifications(validator.escape(req.body.users_email), req.body.user_tutor));
+  return;
+});
+
+app.post('/set_notification_to_read', async (req, res) => {
+  let database = require('./services/database')
+
+  const database_connection = new database("Tutum_Nichita", process.env.MONGOOSE_KEY, "service_loop");
+  let db_con_response = await database_connection.connect();
+
+  res.json(await database_connection.set_notification_to_read(req.body.notification_id));
+  return;
+});
+
+app.post('/get_all_posts', async (req, res) => {
+  let database = require('./services/database')
+
+  const database_connection = new database("Tutum_Nichita", process.env.MONGOOSE_KEY, "service_loop");
+  let db_con_response = await database_connection.connect();
+
+  res.json(await database_connection.get_all_elegible_posts(req.body.user_modules));
+  return;
+});
+
+// try this
+
+// this is function on soket.js
+
+// io.on("sessreload",function(sid){
+// //some code
+// });
+// this is call this function
+
+// io.sockets._events.sessreload(sid);
+
+
+// (async () => {
+//   let database = require('./services/database')
+
+//   const validator = require('validator');
+//   let tutor_email = validator.escape("D00192082@student.dkit.ie");
+//   let tutor_skills = ["PHP", "JavaScript"];
+
+//   const database_connection = new database("Tutum_Nichita", process.env.MONGOOSE_KEY, "service_loop");
+//   let db_con_response = await database_connection.connect();
+
+//   let response = await database_connection.elevate_user_to_tutor(tutor_email, tutor_skills);
+//   console.log(response);
 //   return;
 // })();
 
-// app.listen(3000, function () {
+// var server = app.listen(3001, function () {
 //   console.log('Example app started!');
 // });
 
-app.listen(process.env.ALWAYSDATA_HTTPD_PORT, process.env.ALWAYSDATA_HTTPD_IP, function () {
+var server = app.listen(process.env.ALWAYSDATA_HTTPD_PORT, process.env.ALWAYSDATA_HTTPD_IP, function () {
   console.log('Example app started!');
+});
+
+var io = require('socket.io')(server);
+var users_connected = [];
+
+// WARNING: app.listen(80) will NOT work here!
+
+function send_notification(socket, data) {
+  let elegible_users = [];
+  console.log(data);
+  for (let i = 0; i < users_connected.length; i++) {
+    //some(..) checks each element of the array against a test function and returns true if any element of the array passes the test function, otherwise, it returns false. 
+    //indexOf(..) >= 0 and includes(..) both return true if the given argument is present in the array.
+
+    if (arrayContainsSameValues(users_connected[i].modules, data.notification_modules)) {
+      elegible_users.push(users_connected[i]);
+    }
+  }
+
+  console.log("Elegible users");
+  console.log(elegible_users);
+
+  for (let i = 0; i < elegible_users.length; i++) {
+    //socket.emit('news', { hello: elegible_users, socket_id: elegible_users[i].socket_id });
+    socket.to(elegible_users[i].socket_id).emit("new_notification", { response: data });
+  }
+
+  //socket.emit('news', { hello: elegible_users });
+}
+
+io.on('connection', function (socket) {
+  if (!users_connected.filter(function (e) { return e.email === socket.handshake.query.email; }).length > 0) {
+    users_connected.push({ socket_id: socket.id, email: socket.handshake.query.email, modules: JSON.parse(socket.handshake.query.modules) });
+  } else {
+
+    for (let i = 0; i < users_connected.length; i++) {
+      if (socket.handshake.query.email === users_connected[i].email) {
+        users_connected[i].socket_id = socket.id;
+        users_connected[i].modules = JSON.parse(socket.handshake.query.modules);
+      }
+    }
+  }
+
+  console.log("Users connected")
+  console.log(users_connected);
+  console.log("Users connected ends")
+
+  socket.emit('news', { hello: 'connected', users: users_connected });
+
+  socket.on('send_notification', function (data) {
+    send_notification(socket, data)
+  });
+
+  // socket.on('disconnect', (reason) => {
+  //   socket.emit('news', { hello: reason});
+
+  //   for(let i = 0; i < users_connected.length; i++) {
+  //     if(users_connected[i])
+  //   }
+  //   if (users_connected.filter(function (e) { return e.email === socket.handshake.query.email; }).length > 0) {
+  //     users_connected.remove('seven');
+  //   } 
+  // });
 });
