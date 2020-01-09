@@ -1,13 +1,11 @@
 "use strict";
 
 /**
- * This is the function that will login a user, we hash the users password and check
- * to see that the generated hash matches the password hash created when registering.
+ * This is the function that will check the users credentials when logging in.
+ * It checks to see if the plaintext password of the user is the same as the password hash 
  * 
- * Will consider adding 2-factor authentication at some point.
- * 
- * @param {This is the email of the user} users_email
- * @param {This is the password of the user which we will/have hashed} users_password 
+ * @param {String} users_email
+ * @param {String} users_password 
  */
 
 let check_user_credentials = async function check_user_credentials(users_email, users_password) {
@@ -15,28 +13,40 @@ let check_user_credentials = async function check_user_credentials(users_email, 
     let result = {};
 
     const database = require('./database');
-    const database_connection = new database("Tutum_Nichita", process.env.MONGOOSE_KEY, "service_loop");
+    const database_connection = new database("Tutum_Nichita", "EajHKuViBCaL62Sj", "service_loop");
     let database_connect_response = await database_connection.connect();
 
     let password_hash = await database_connection.find_id_by_email(users_email);
 
     if (password_hash.response === "No user found!") {
+        database_connection.disconnect();
         return false;
     } else {
+        database_connection.disconnect();
         return {password_matches: await bcrypt.compare(users_password, password_hash.response.user_password), user: password_hash};
     }
 
 }
 
+/**
+ * This is the function that will login a user, we hash the users password and check
+ * to see that the generated hash matches the password hash created when registering.
+ * 
+ * If successful, we will create a JWT (JsonWebToken) to act as our session 
+ * 
+ * @param {String} users_email
+ * @param {String} users_password 
+ */
 let login_user = async function login_user(users_email, users_password) { 
     const jwt = require('jsonwebtoken');
     let result = {};
     //process.env.JWT_SECRET
     let JWT_SECRET = 'addjsonwebtokensecretherelikeQuiscustodietipsoscustodes';
 
-
+    //Call a function to compare the plaintext password of the user against the hash from the database
     let password_correct = await check_user_credentials(users_email, users_password);
 
+    //If the passwords match, we create the JWT
     if (password_correct.password_matches) {
         const payload = { user: users_email };
         const options = { expiresIn: '1h', issuer: 'https://serviceloop.com' };

@@ -1,21 +1,23 @@
 "use strict";
 
 /**
- * This is the function that will be called to create a new user and generate a Digital Certificates
- * for the user. It takes 5 parameters and firstly creates the certificate asynchronously 
- * while the rest of the function logs the information to the database.
+ * This is the function that will verify the users input and make sure it matches our criteria for password strength, phone number and email format
  * 
- * @param {This is the full name of the user} users_name 
- * @param {This is the password of the user which we have hashed} users_password 
- * @param {This is the email of the user} users_email
- * @param {This is the county in which the user lives} users_county
- * @param {This is the town in which the user lives} users_town
+ * @param {String} users_full_name - This is the name of the user
+ * @param {String} users_password - This is the password of the user
+ * @param {String} users_password_confirm - This is the password of the user
+ * @param {String} users_email - This is the email of the user
+ * @param {String} users_phone_number - This is the users phone number
+ * 
+ * @returns {Promise} This Promise will contain an object that contains 2 keys: error and response, the "error" key will be a boolean 
+ * that specifies wether the registration was successful or not and the "response" key will be a String that contains the response from the function 
  */
 let filter_registration_input = function validate_registration_input(users_full_name, users_password, users_password_confirm, users_email, users_phone_number) {
     const validator = require('validator');
     let validation_successful = false;
     let data_all_present = false;
     
+    //Here we check to see if the username, password, confirm password, email and phone number are not empty, if they are, we return an error
     if (users_full_name.length === 0 || users_password.length === 0 || users_password_confirm.length === 0 || users_email.length === 0 || users_phone_number.length === 0) {
         return { error: true, response: "Please fill in all required fields before proceeding." };
     }

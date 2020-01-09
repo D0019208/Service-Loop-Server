@@ -1,15 +1,15 @@
 "use strict";
 
 /**
- * This is the function that will be called to create and generate the Digital Certificates
- * for the user. The Digital Certificate will contain information about the user explained
- * in the below variables. The function takes 8 parameters and creates the certificate 
- * asynchronously. If there is an error, our try/catch blocks will catch it and safely return
- * an error to the user.
+ * This is the function that actually contains the code to create the Digital Certificate.
  * 
- * @param {This is the full name of the user} users_name 
- * @param {This is the password of the user which we will/have hashed} users_password 
- * @param {This is the email of the user} users_email 
+ * @param {user_id} user_id - This is the ID of the user in the database that we shall use to identify the Digital Certificate e.g. "5e0e14c481073e233955a5aa"
+ * @param {user_certificate_password} users_password - This is the password that we shall use to protect the users Digital Certificate,
+ * e.g. "dsfdsKfsfdL@2!"
+ * @param {user_email} users_email - This is the users email, e.g. "JohnWick@gmail.com"
+ * @param {users_full_name} users_full_name - This is the users fullname e.g. "John Wick" 
+ * 
+ * @returns {Promise}
  */
 let create_user_certificate = async function create_user_certificate(user_id, user_certificate_password, user_email, users_full_name) {
     let error;
@@ -22,8 +22,7 @@ let create_user_certificate = async function create_user_certificate(user_id, us
           file path.
         */
         let success = false;
-        
-
+         
         //Options for creating the certificate
         let p12 = require('node-openssl-p12').createClientSSL;
         let p12options = {

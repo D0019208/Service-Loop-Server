@@ -9,7 +9,7 @@ describe('Register a new user', function () {
     }); 
 
     it('should return a success message once user created and updated after digital certificate creation', async function (done) {
-        const database_connection = new database("Tutum_Nichita", process.env.MONGOOSE_KEY, "service_loop");
+        const database_connection = new database("Tutum_Nichita", "EajHKuViBCaL62Sj", "service_loop");
         let db_con_response = await database_connection.connect();
         let user_deleted_response = await database_connection.delete_user_by_email("D00192082@student.dkit.ie");
 

@@ -2,14 +2,28 @@
 
 /**
  * This is the function that will be called to create a new user and generate a Digital Certificates
- * for the user. It takes 5 parameters and firstly creates the certificate asynchronously 
- * while the rest of the function logs the information to the database.
+ * for the user. It takes 5 parameters and creates a user first with basic information such as the users
+ * full name, email and phone number and only after we create the Digital Certificate and a hashed password
+ * do we update the user.
  * 
- * @param {This is the full name of the user} users_name 
- * @param {This is the password of the user which we have hashed} users_password 
- * @param {This is the email of the user} users_email
+ * @param {String} users_full_name - This is the users full name e.g. "John Wick"
+ * @param {String} users_password - This is the users password e.g. "12345aA@"
+ * @param {String} users_password_confirm - This is the users password confirmation, it must match to the users_password e.g. "12345aA@"
+ * @param {String} users_email - This is the users email address, it must be a valid email format e.g. "JohnWick@gmail.com"
+ * @param {Stringr} users_phone_number - This is the phone number of the user, it must be a valid Irish phone number e.g. "08436752562"
+ * 
+ * @returns {Promise} This Promise will contain an object that contains 2 keys: error and response, the "error" key will be a boolean 
+ * that specifies wether the registration was successful or not and the "response" key will be a String that contains the response from the function
  */
 let create_new_user = async function create_new_user(users_full_name, users_password, users_password_confirm, users_email, users_phone_number) { 
+    /**
+     * This is the function that will hash the users plaintext password
+     *  
+     * @param {String} users_password - This is the users password e.g. "12345aA@" 
+     * 
+     * @returns {Promise} This Promise will contain an object that contains 2 keys: error and response, the "error" key will be a boolean 
+     * that specifies wether the registration was successful or not and the "response" key will be a String that contains the hashed password from the function
+     */
     const users_password_hash = (users_password) => {
         return new Promise((resolve, reject) => {
             const bcrypt = require('bcrypt');
@@ -23,6 +37,18 @@ let create_new_user = async function create_new_user(users_full_name, users_pass
         });
     }
 
+    /**
+     * This is the function that will insert the user into the MongoDB database, we call this function to create the initial user after wich we update it with the
+     * Digital Certificate path, password and hashed user password
+     *  
+     * @param {Database} database_connection - This is the database class that we will use to register the user as it contains all the database related functions
+     * @param {String} users_full_name - This is the users full name e.g. "John Wick"
+     * @param {String} users_email - This is the email of the user e.g. "JohnWick@gmail.com" 
+     * @param {String} users_phone_number - This is the users phone number e.g. "0363792371" 
+     * 
+     * @returns {Promise} This Promise will contain an object that contains 2 keys: error and response, the "error" key will be a boolean 
+     * that specifies wether the registration was successful or not and the "response" key will be a String that contains the response from the function
+     */
     const insert_user_into_db = (database_connection, users_full_name, users_email, users_phone_number) => {
         return new Promise(async (resolve, reject) => {
             //resolve({ error: false, response: "New user registered successfully." });
@@ -31,6 +57,7 @@ let create_new_user = async function create_new_user(users_full_name, users_pass
 
             if (response.error) {
                 console.log(err);
+                database_connection.disconnect();
                 reject({ error: true, response: err });
             } else {
                 console.log("Success")
@@ -39,35 +66,52 @@ let create_new_user = async function create_new_user(users_full_name, users_pass
         });
     }
 
+    /**
+     * This is the function that will create the users Digital Certificate
+     *  
+     * @param {Database} database_connection - This is the database class that we will use to register the user as it contains all the database related functions
+     * @param {String} users_full_name - This is the users full name e.g. "John Wick"
+     * @param {String} users_email - This is the email of the user e.g. "JohnWick@gmail.com"  
+     * 
+     * @returns {Promise} This Promise will contain an object that contains 2 keys: error and response, the "error" key will be a boolean 
+     * that specifies wether the registration was successful or not and the "response" key will be a String that contains the response from the function
+     */
     const p12_certificate_response = (database_connection, users_full_name, users_email) => {
         return new Promise(async (resolve, reject) => {
             const create_p12_certificate = require('./create_p12_certificate');
             const generator = require('generate-password');
 
+            //Generate a random password for the users Digital Certificate
             let users_certificate_password = generator.generate({
                 length: 10,
                 numbers: true
             });
 
-            //Initialize model and get ID of email
             try {
+                //Find the user that we need to update
                 let find_user_id_results = await database_connection.find_id_by_email(users_email);
 
+                //If an error happens when we try to get the user from the database, we close the connection and return an error
                 if (find_user_id_results.error) {
+                    database_connection.disconnect();
                     resolve({ error: true, response: find_user_id_results.response });
                 } else {
+                    //If the function could not find a user, we again, disconnect and return an error
                     if (find_user_id_results.response === "No user found!") {
+                        database_connection.disconnect();
                         resolve({ error: true, response: find_user_id_results.response });
                     } else {
-                        let user_id = find_user_id_results.response._id;
-                        
+                        //We get the users ID from the returned User
+                        let user_id = find_user_id_results.response._id; 
                         //Consider looking into wtf is a serial number
+                        //We then create a digital certificate using the user id as the identifier, the randomly generate password as the cert password
                         let response = await create_p12_certificate.create_user_certificate(user_id, users_certificate_password, users_email, users_full_name);
 
                         //let response = "IDK";
                         if (response !== "Digital Certificate creation failed.") {
                             resolve({ error: false, certificate_location: response, certificate_password: users_certificate_password, type: "digital_certificate" });
                         } else {
+                            database_connection.disconnect();
                             resolve({ error: true, response: response });
                         }
                     }
@@ -95,6 +139,7 @@ let create_new_user = async function create_new_user(users_full_name, users_pass
     //Valiate user data
     let filtering_response = await filter_registration_input.validate_registration_input(users_full_name, users_password, users_password_confirm, users_email, users_phone_number);
 
+    //If there is an error in validating the users data, we exit.
     if (filtering_response.error) {
         console.log("Exit")
         return filtering_response;
@@ -105,22 +150,25 @@ let create_new_user = async function create_new_user(users_full_name, users_pass
     const database_connection = new database("Tutum_Nichita", process.env.MONGOOSE_KEY, "service_loop");
 
     try {
-        let database_connect_response = await database_connection.connect();
+        //Connect to the database
+        let database_connect_response = await database_connection.connect(); 
 
-        console.log(database_connect_response);
-
+        //Insert the user into the database
         let user_insert_response = await insert_user_into_db(database_connection, users_full_name, users_email, users_phone_number);
 
+        //If insertion is successfull, we proceed to finalize the registration by creating a Digital Certificate, a hash of the users password and a random password
+        //to be used by the Digital Certificate
         if (!user_insert_response.error) {
             let promise_array = [users_password_hash(users_password), p12_certificate_response(database_connection, users_full_name, users_email)];
 
+            //Wait for all the Promises to execute after wich we update the user
             return Promise.all(promise_array)
                 .then(async result => { 
 
                     let password_hash;
                     let digital_certificate_path;
                     let digital_certificate_password;
-
+                    
                     for(let i = 0; i < result.length; i++) {
                         if(result[i].type === "digital_certificate") {
                             digital_certificate_path = result[i].certificate_location;
@@ -130,6 +178,7 @@ let create_new_user = async function create_new_user(users_full_name, users_pass
                         }
                     }
                     
+                    //Update the user with the new details 
                     let update_response = await database_connection.update_new_users_details(users_email, password_hash, digital_certificate_path, digital_certificate_password);
                     database_connection.disconnect();
                     return update_response;
@@ -146,6 +195,7 @@ let create_new_user = async function create_new_user(users_full_name, users_pass
         }
 
     } catch (ex) {
+        database_connection.disconnect();
         console.log(ex);
         return;
     }

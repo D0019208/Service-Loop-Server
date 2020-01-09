@@ -13,6 +13,11 @@ function arrayContainsSameValues(arr, arr2) {
   return arr.every(i => arr2.includes(i));
 }
 
+/*
+  Add a new function called "remove" to the Array prototype
+  that removes a value from an array without needing to loop
+  each time.
+*/
 Array.prototype.remove = function () {
   var what, a = arguments, L = a.length, ax;
   while (L && this.length) {
@@ -44,7 +49,7 @@ app.post('/create_and_sign_pdf', async (req, res) => {
 
 app.post('/check_user_details_correct', async (req, res) => {
   const login = require('./services/login');
-  console.log(await login.check_user_credentials(req.body.users_email, req.body.users_password));
+  
   res.json(await login.check_user_credentials(req.body.users_email, req.body.users_password));
   return;
 });

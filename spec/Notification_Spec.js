@@ -6,12 +6,12 @@ describe('Get all users notifications', function () {
     });
 
     afterEach(function() {
-        const database_connection = new database("Tutum_Nichita", process.env.MONGOOSE_KEY, "service_loop");
+        const database_connection = new database("Tutum_Nichita", "EajHKuViBCaL62Sj", "service_loop");
         database_connection.disconnect();
     });
 
     it('should return an object with all the users notifications', async function (done) {
-        const database_connection = new database("Tutum_Nichita", process.env.MONGOOSE_KEY, "service_loop");
+        const database_connection = new database("Tutum_Nichita", "EajHKuViBCaL62Sj", "service_loop");
         let db_con_response = await database_connection.connect();
 
         let modules_array = ["PHP, JavaScript"];
@@ -22,7 +22,7 @@ describe('Get all users notifications', function () {
     });
 
     it('should set the status of a notification as opened', async function (done) { 
-        const database_connection = new database("Tutum_Nichita", process.env.MONGOOSE_KEY, "service_loop");
+        const database_connection = new database("Tutum_Nichita", "EajHKuViBCaL62Sj", "service_loop");
         let db_con_response = await database_connection.connect();
 
         let test_2_result = await database_connection.set_notification_to_read("5e04f1381c9d4400004e9e75");
@@ -38,13 +38,13 @@ describe('Get all users notifications', function () {
     });
 
     afterEach(function() {
-        const database_connection = new database("Tutum_Nichita", process.env.MONGOOSE_KEY, "service_loop");
+        const database_connection = new database("Tutum_Nichita", "EajHKuViBCaL62Sj", "service_loop");
         database_connection.disconnect();
     });
 
     it('should return a message when there are no notifications to display', async function (done) {
         
-        const database_connection = new database("Tutum_Nichita", process.env.MONGOOSE_KEY, "service_loop");
+        const database_connection = new database("Tutum_Nichita", "EajHKuViBCaL62Sj", "service_loop");
         let db_con_response = await database_connection.connect();
         
         await database_connection.delete_notifications_by_email("D00192082@student.dkit.ie");
@@ -56,7 +56,7 @@ describe('Get all users notifications', function () {
 
     it('should return a message when there are notifications to display for a student user', async function (done) {
         
-        const database_connection = new database("Tutum_Nichita", process.env.MONGOOSE_KEY, "service_loop");
+        const database_connection = new database("Tutum_Nichita", "EajHKuViBCaL62Sj", "service_loop");
         let db_con_response = await database_connection.connect();
         
         let modules_array = ["PHP, JavaScript"];
@@ -73,7 +73,7 @@ describe('Get all users notifications', function () {
 
     it('should return a message when there are no notifications to display for a tutor user', async function (done) {
         
-        const database_connection = new database("Tutum_Nichita", process.env.MONGOOSE_KEY, "service_loop");
+        const database_connection = new database("Tutum_Nichita", "EajHKuViBCaL62Sj", "service_loop");
         let db_con_response = await database_connection.connect();
         
         let modules_array = ["PHP, JavaScript"];
@@ -92,7 +92,7 @@ describe('Get all users notifications', function () {
 
     it('should return no error when there are "Tutorial Request Sent" notifications to display for a tutor user', async function (done) {
         
-        const database_connection = new database("Tutum_Nichita", process.env.MONGOOSE_KEY, "service_loop");
+        const database_connection = new database("Tutum_Nichita", "EajHKuViBCaL62Sj", "service_loop");
         let db_con_response = await database_connection.connect();
         
         let modules_array = ["PHP, JavaScript"];
@@ -111,7 +111,7 @@ describe('Get all users notifications', function () {
 
     it('should return no error when there are NO "Tutorial requested" notifications to display for a tutor user', async function (done) {
         
-        const database_connection = new database("Tutum_Nichita", process.env.MONGOOSE_KEY, "service_loop");
+        const database_connection = new database("Tutum_Nichita", "EajHKuViBCaL62Sj", "service_loop");
         let db_con_response = await database_connection.connect();
         
         let modules_array = ["PHP, JavaScript"];
@@ -130,7 +130,7 @@ describe('Get all users notifications', function () {
 
     it('should return no error when there are "Tutorial requested" notifications to display for a tutor user', async function (done) {
         
-        const database_connection = new database("Tutum_Nichita", process.env.MONGOOSE_KEY, "service_loop");
+        const database_connection = new database("Tutum_Nichita", "EajHKuViBCaL62Sj", "service_loop");
         let db_con_response = await database_connection.connect();
         
         let modules_array = ["PHP, JavaScript"];
@@ -154,13 +154,13 @@ describe('Get all notifications that a user is elegible for', function () {
     });
 
     afterEach(function() {
-        const database_connection = new database("Tutum_Nichita", process.env.MONGOOSE_KEY, "service_loop");
+        const database_connection = new database("Tutum_Nichita", "EajHKuViBCaL62Sj", "service_loop");
         database_connection.disconnect();
     });
 
     it('should return no error', async function (done) {
         
-        const database_connection = new database("Tutum_Nichita", process.env.MONGOOSE_KEY, "service_loop");
+        const database_connection = new database("Tutum_Nichita", "EajHKuViBCaL62Sj", "service_loop");
         let db_con_response = await database_connection.connect();
         
         let modules_array = ["PHP, JavaScript"];
