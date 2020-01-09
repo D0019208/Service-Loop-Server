@@ -47,7 +47,7 @@ let filter_registration_input = function validate_registration_input(users_full_
         //return {error: true, response: "pre_db"}
         //Setup database connection and model for registrating new user
         const database = require('../database');
-        const database_connection = new database("Tutum_Nichita", process.env.MONGOOSE_KEY, "service_loop"); 
+        const database_connection = new database("Tutum_Nichita", "EajHKuViBCaL62Sj", "service_loop"); 
         
         try {
             return new Promise(async (resolve, reject) => {
@@ -60,13 +60,16 @@ let filter_registration_input = function validate_registration_input(users_full_
                     resolve({ error: true, response: find_if_email_unique_results.response });
                 } else { 
                     if(find_if_email_unique_results.response == "No user found!") { 
+                        database_connection.disconnect();
                         resolve({error: false, response: "Proceed."});
                     } else { 
+                        database_connection.disconnect();
                         resolve({error: true, response: "The email '" + users_email + "' is already taken. Please use a different email and try again."});
                     } 
                 } 
             }); 
         } catch (ex) {
+            database_connection.disconnect();
             return {error: true, response: ex};
         }
     }

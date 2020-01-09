@@ -22,7 +22,8 @@ let create_user_certificate = async function create_user_certificate(user_id, us
           file path.
         */
         let success = false;
-         
+        
+
         //Options for creating the certificate
         let p12 = require('node-openssl-p12').createClientSSL;
         let p12options = {

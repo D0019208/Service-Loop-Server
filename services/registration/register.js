@@ -58,7 +58,7 @@ let create_new_user = async function create_new_user(users_full_name, users_pass
             if (response.error) {
                 console.log(err);
                 database_connection.disconnect();
-                reject({ error: true, response: err });
+                resolve({ error: true, response: err });
             } else {
                 console.log("Success")
                 resolve({ error: false, response: "New user registered successfully." });
@@ -147,7 +147,7 @@ let create_new_user = async function create_new_user(users_full_name, users_pass
 
     //Setup database connection and model for registrating new user
     const database = require('../database');
-    const database_connection = new database("Tutum_Nichita", process.env.MONGOOSE_KEY, "service_loop");
+    const database_connection = new database("Tutum_Nichita", "EajHKuViBCaL62Sj", "service_loop");
 
     try {
         //Connect to the database
@@ -168,7 +168,7 @@ let create_new_user = async function create_new_user(users_full_name, users_pass
                     let password_hash;
                     let digital_certificate_path;
                     let digital_certificate_password;
-                    
+
                     for(let i = 0; i < result.length; i++) {
                         if(result[i].type === "digital_certificate") {
                             digital_certificate_path = result[i].certificate_location;
@@ -195,6 +195,7 @@ let create_new_user = async function create_new_user(users_full_name, users_pass
         }
 
     } catch (ex) {
+        //Maybe this line is redundant
         database_connection.disconnect();
         console.log(ex);
         return;
