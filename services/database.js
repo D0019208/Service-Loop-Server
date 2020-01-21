@@ -303,7 +303,7 @@ class database {
     newPost.std_email = users_email;
     newPost.std_avatar = "https://d00192082.alwaysdata.net/ServiceLoopServer/resources/images/base_user.png";
     newPost.post_title = request_title;
-    newPost.post_posted_on = dateformat(new Date(), 'mmmm dS yyyy');
+    newPost.post_posted_on = dateformat(new Date(), 'mmmm dS');
     newPost.post_desc = request_description;
     newPost.post_desc_trunc = request_description.trunc(100);
 
@@ -371,7 +371,7 @@ class database {
     const dateformat = require('dateformat');
 
     let notificationModel = new notificationModelSchema();
-    let notification_posted_on = dateformat(new Date(), 'mmmm dS yyyy');
+    let notification_posted_on = dateformat(new Date(), 'mmmm dS');
 
     notificationModel.notification_avatar = "https://d00192082.alwaysdata.net/ServiceLoopServer/resources/images/base_user.png";
     notificationModel.notification_title = notification_title;
@@ -413,7 +413,8 @@ class database {
 
     //Get todays date in the following format "January 9th 20"
     const dateformat = require('dateformat');
-    let notification_posted_on = dateformat(new Date(), 'mmmm dS yyyy');
+    //yyyy
+    let notification_posted_on = dateformat(new Date(), 'mmmm dS');
 
     //We check if there is any extra information
     if (extra_information !== null) {
