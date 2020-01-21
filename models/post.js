@@ -1,7 +1,15 @@
 const mongoose = require('mongoose');
 
 const PostSchema = new mongoose.Schema({
+  std_name: {
+    type: String,
+    required: true
+  },
   std_email: {
+    type: String,
+    required: true
+  },
+  std_avatar: {
     type: String,
     required: true
   },
@@ -9,7 +17,17 @@ const PostSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  post_posted_on:
+  {
+    type: String,
+    required: true
+  },
   post_desc:
+  {
+    type: String,
+    required: true
+  },
+  post_desc_trunc:
   {
     type: String,
     required: true

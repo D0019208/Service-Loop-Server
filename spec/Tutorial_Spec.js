@@ -16,7 +16,7 @@ describe('Applying to be a tutor', function () {
 
         let test_1_result = await database_connection.elevate_user_to_tutor("nikito888@gmail.com", ["JavaScript", "PHP"]);
 
-        expect(test_1_result).toBe('User elevated successfully!');
+        expect(test_1_result.response).toBe('User elevated successfully!');
         done();
     }); 
 

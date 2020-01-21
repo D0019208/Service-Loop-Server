@@ -168,8 +168,8 @@ describe('Get all notifications that a user is elegible for', function () {
         await database_connection.create_notification("Tutorial request sent", "You have successfully requested a tutorial to cover " + modules_array.join(', ') + ". A tutor will be in contact with you as soon as possible.", "D00192082@student.dkit.ie", ["Tutorial request sent"], { post_id: "post._id", modules: ["PHP, JavaScript"] });
         await database_connection.create_notification_for_tutors("New tutorial request", "D00192082@student.dkit.ie", "D00192082@student.dkit.ie" + " requested a tutorial for the " + modules_array.join(', ') + "modules. Please see the post in context.", ["Tutorial requested"], ["PHP, JavaScript"], "post._id");
         
-        let test_1_result = await database_connection.get_all_elegible_posts(["PHP", "Maths"]); 
-
+        let test_1_result = await database_connection.get_all_elegible_posts("D00192082@student.dkit.ie", ["PHP", "Maths"]); 
+console.log(test_1_result);
         await database_connection.delete_notifications_by_email("D00192082@student.dkit.ie");
         await database_connection.delete_notifications_by_modules(["JavaScript", "PHP"]);
 
