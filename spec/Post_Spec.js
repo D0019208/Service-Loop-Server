@@ -15,8 +15,11 @@ describe('Loading all tutorials', function () {
         let db_con_response = await database_connection.connect(); 
 
         let result = await database_connection.add_tutorial("Test", "Test", ["JavaScript", "PHP"], "D00192082@student.dkit.ie");
+        db_con_response = await database_connection.connect(); 
         let test_1_result = await database_connection.get_all_elegible_posts("D00192082@student.dkit.ie", ["JavaScript", "PHP"]);
 
+console.log("saaf")
+        console.log(test_1_result);
         expect(test_1_result.error).toBe(false);
         done();
     }); 
@@ -26,7 +29,7 @@ describe('Loading all tutorials', function () {
         let db_con_response = await database_connection.connect(); 
 
         let result = await database_connection.delete_posts_by_email("D00192082@student.dkit.ie");
-        let test_2_result = await database_connection.get_all_elegible_posts("D00192082@student.dkit.ie", ["JavaScript", "PHP"]);
+        let test_2_result = await database_connection.get_all_elegible_posts("D00192082@student.dkit.ie", ["", ""]);
 
         expect(test_2_result.response).toBe("There are no posts to display!");
         done();
@@ -48,11 +51,10 @@ describe('Setting a posts status', function () {
         let db_con_response = await database_connection.connect(); 
 
         let result = await database_connection.add_tutorial("Test", "Test", ["JavaScript", "PHP"], "D00192082@student.dkit.ie");
+
+        db_con_response = await database_connection.connect(); 
         let test_1_result = await database_connection.accept_post("D00192082@student.dkit.ie", result.response[0]._id);
-        console.log(result._id);
-        console.log("res")
-        console.log(result)
-//console.log(test_1_result);
+
         expect(test_1_result.error).toBe(false);
         done();
     }); 

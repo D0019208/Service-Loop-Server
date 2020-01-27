@@ -1,7 +1,9 @@
 const express = require('express')
 const cors = require('cors')
-const app = express();
-const xssFilters = require('xss-filters');
+const app = express(); 
+var users_connected = [];
+
+//const xssFilters = require('xss-filters');
 
 app.use(cors());
 app.use(express.json());
@@ -127,8 +129,12 @@ app.post('/send_sms_verification', async (req, res) => {
 
 app.post('/login_user', async (req, res) => {
   const login = require('./services/login');
+  const database = require('./services/database');
 
-  res.json(await login.login_user(req.body.users_email, req.body.users_password));
+  const database_connection = new database("Tutum_Nichita", "EajHKuViBCaL62Sj", "service_loop");
+  let db_con_response = await database_connection.connect();
+
+  res.json(await login.login_user(req.body.users_email, req.body.users_password, database_connection));
   return;
 });
 
@@ -160,8 +166,12 @@ app.post('/verify_token', (req, res) => {
 app.post('/register', async (req, res) => {
   const register_new_user = require('./services/registration/register');
   const validator = require('validator');
+  const database = require('./services/database');
 
-  let result = await register_new_user.create_new_user(validator.escape(req.body.users_full_name), req.body.users_password, req.body.users_password_confirm, validator.escape(req.body.users_email), validator.escape(req.body.users_phone_number));
+  const database_connection = new database("Tutum_Nichita", "EajHKuViBCaL62Sj", "service_loop");
+  let db_con_response = await database_connection.connect();
+
+  let result = await register_new_user.create_new_user(validator.escape(req.body.users_full_name), req.body.users_password, req.body.users_password_confirm, validator.escape(req.body.users_email), validator.escape(req.body.users_phone_number), database_connection);
   res.json(JSON.stringify(result));
   return;
 });
@@ -183,10 +193,10 @@ app.post('/appply_to_be_tutor', async (req, res) => {
     } else {
       res.json({ error: true, response: "Please fill out all fields before applying." });
       return;
-    }
-
-
+    } 
   } catch (ex) {
+    //????? maybe delete
+    database_connection.disconnect();
     res.json(ex);
     return;
   }
@@ -212,8 +222,8 @@ app.post('/request_tutorial', async (req, res) => {
 });
 
 app.post('/get_all_notifications', async (req, res) => {
-  let database = require('./services/database')
   const validator = require('validator');
+  const database = require('./services/database');
 
   const database_connection = new database("Tutum_Nichita", "EajHKuViBCaL62Sj", "service_loop");
   let db_con_response = await database_connection.connect();
@@ -245,6 +255,8 @@ app.post('/get_all_posts', async (req, res) => {
   const database_connection = new database("Tutum_Nichita", "EajHKuViBCaL62Sj", "service_loop");
   let db_con_response = await database_connection.connect();
 
+  //await database_connection.reset();
+
   res.json(await database_connection.get_all_elegible_posts(req.body.email, req.body.user_modules));
   return;
 });
@@ -256,6 +268,16 @@ app.post('/post_accepted', async (req, res) => {
   let db_con_response = await database_connection.connect();
 
   res.json(await database_connection.accept_post(req.body.tutor_email, req.body.post_id));
+  return;
+});
+
+app.post('/get_notification_posts', async (req, res) => {
+  let database = require('./services/database')
+
+  const database_connection = new database("Tutum_Nichita", "EajHKuViBCaL62Sj", "service_loop");
+  let db_con_response = await database_connection.connect();
+
+  res.json(await database_connection.get_notification_posts(req.body.notification_posts_id));
   return;
 });
 
@@ -286,16 +308,27 @@ app.post('/post_accepted', async (req, res) => {
 //   return;
 // })();
 
-var server = app.listen(3001, function () {
-  console.log('Example app started!');
-});
-
-// var server = app.listen(process.env.ALWAYSDATA_HTTPD_PORT, process.env.ALWAYSDATA_HTTPD_IP, function () {
-//   console.log('Example app started!');
+// var server = app.listen(3001, function () {
+//  console.log('Example app started!');
 // });
 
-var io = require('socket.io')(server);
-var users_connected = [];
+ var server = app.listen(process.env.ALWAYSDATA_HTTPD_PORT, process.env.ALWAYSDATA_HTTPD_IP, function () {
+   console.log('Example app started!');
+ });
+
+
+//WORKS ON SERVER
+// var http_server = require('http').Server(app);
+// var io = require('socket.io')(http_server);
+// http_server.listen(80);
+
+var io = require('socket.io').listen(server);
+
+//WORKS ON LOCALHOST
+//var server = require('http').Server(app);
+//var io = require('socket.io')(server);
+
+//server.listen(80);
 
 // WARNING: app.listen(80) will NOT work here!
 
@@ -305,14 +338,17 @@ function send_notification(socket, data) {
   for (let i = 0; i < users_connected.length; i++) {
     //some(..) checks each element of the array against a test function and returns true if any element of the array passes the test function, otherwise, it returns false. 
     //indexOf(..) >= 0 and includes(..) both return true if the given argument is present in the array.
+    console.log(users_connected[i].modules);
 
-    if (arrayContainsSameValues(users_connected[i].modules, data.notification_modules)) {
-      elegible_users.push(users_connected[i]);
-    }
+    for (let j = 0; j < users_connected[i].modules.length; j++) { 
+      if (users_connected[i].modules[j] === data.notification_modules[0]) {
+        elegible_users.push(users_connected[i]);
+      }
+    } 
   }
 
   console.log("Elegible users");
-  console.log(elegible_users);
+  console.log(elegible_users); 
 
   for (let i = 0; i < elegible_users.length; i++) {
     //socket.emit('news', { hello: elegible_users, socket_id: elegible_users[i].socket_id });
@@ -326,24 +362,32 @@ function send_tutorial(socket, data) {
   let elegible_users = [];
   console.log(data);
   for (let i = 0; i < users_connected.length; i++) {
-    //some(..) checks each element of the array against a test function and returns true if any element of the array passes the test function, otherwise, it returns false. 
-    //indexOf(..) >= 0 and includes(..) both return true if the given argument is present in the array.
-
-    if (arrayContainsSameValues(users_connected[i].modules, data.tutorial_modules)) {
-      elegible_users.push(users_connected[i]);
-    }
-  }
-
-  console.log("Elegible users");
-  console.log(elegible_users);
+    for (let j = 0; j < users_connected[i].modules.length; j++) { 
+      if (users_connected[i].modules[j] === data.response[0].post_modules[0]) {
+        elegible_users.push(users_connected[i]);
+      }
+    } 
+  } 
 
   for (let i = 0; i < elegible_users.length; i++) {
     //socket.emit('news', { hello: elegible_users, socket_id: elegible_users[i].socket_id });
-    socket.to(elegible_users[i].socket_id).emit("new_tutorial_request", { response: data });
+    socket.to(elegible_users[i].socket_id).emit("new_tutorial_request", { response: data.response[0] });
   }
 }
 
-io.on('connection', function (socket) {
+function sendTutorialAcceptedNotification(socket, data) {
+  console.log("Unique")
+  console.log(data);
+
+  for (let i = 0; i < users_connected.length; i++) {
+    if (users_connected[i].email === data.response.std_email) {
+      console.log("work")
+      socket.to(users_connected[i].socket_id).emit("add_tutorial_request_accepted_notification", { response: data.response});
+    }
+  }
+}
+
+io.on('connection', function (socket) { 
   if (!users_connected.filter(function (e) { return e.email === socket.handshake.query.email; }).length > 0) {
     users_connected.push({ socket_id: socket.id, email: socket.handshake.query.email, modules: JSON.parse(socket.handshake.query.modules) });
   } else {
@@ -354,11 +398,7 @@ io.on('connection', function (socket) {
         users_connected[i].modules = JSON.parse(socket.handshake.query.modules);
       }
     }
-  }
-
-  console.log("Users connected")
-  console.log(users_connected);
-  console.log("Users connected ends")
+  } 
 
   socket.emit('news', { hello: 'connected', users: users_connected });
 
@@ -366,8 +406,12 @@ io.on('connection', function (socket) {
     send_notification(socket, data)
   });
 
-  socket.on('send_tutorial', function (data) {
+  socket.on('new_tutorial', function (data) {
     send_tutorial(socket, data)
+  }); 
+
+  socket.on('tutorial_request_accepted', function (data) {
+    sendTutorialAcceptedNotification(socket, data)
   });
 
   //Update the socket once a user becomes a tutor (add modules)
@@ -376,9 +420,7 @@ io.on('connection', function (socket) {
       if (users_connected[i].email === data.user_email) {
         users_connected[i].modules = data.user_modules;
       }
-    }
-
-    console.log(users_connected);
+    } 
   });
 
   // socket.on('disconnect', (reason) => {

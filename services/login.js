@@ -8,13 +8,9 @@
  * @param {String} users_password 
  */
 
-let check_user_credentials = async function check_user_credentials(users_email, users_password) {
+let check_user_credentials = async function check_user_credentials(users_email, users_password, database_connection) {
     const bcrypt = require('bcrypt');
-    let result = {};
-
-    const database = require('./database');
-    const database_connection = new database("Tutum_Nichita", "EajHKuViBCaL62Sj", "service_loop");
-    let database_connect_response = await database_connection.connect();
+    let result = {}; 
 
     let password_hash = await database_connection.find_id_by_email(users_email);
 
@@ -37,7 +33,7 @@ let check_user_credentials = async function check_user_credentials(users_email, 
  * @param {String} users_email
  * @param {String} users_password 
  */
-let login_user = async function login_user(users_email, users_password) { 
+let login_user = async function login_user(users_email, users_password, database_connection) { 
     const jwt = require('jsonwebtoken');
     let result = {};
     //process.env.JWT_SECRET
@@ -64,10 +60,15 @@ let login_user = async function login_user(users_email, users_password) {
             result.user_modules = password_correct.user.response.user_modules;
         }
 
+        database_connection.disconnect();
+
         return result;
     } else {
         result.status = 401;
         result.error = 'Email or password is incorrect.';
+
+        database_connection.disconnect();
+
         return result;
     }
 }

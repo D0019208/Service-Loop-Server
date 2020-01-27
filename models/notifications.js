@@ -21,7 +21,7 @@ const NotificationSchema = new mongoose.Schema({
   },
   notification_posted_on: 
   {
-    type: String,
+    type: Date,
     required: true
   },
   notification_opened: {

@@ -12,7 +12,7 @@
  * @returns {Promise} This Promise will contain an object that contains 2 keys: error and response, the "error" key will be a boolean 
  * that specifies wether the registration was successful or not and the "response" key will be a String that contains the response from the function 
  */
-let filter_registration_input = function validate_registration_input(users_full_name, users_password, users_password_confirm, users_email, users_phone_number) {
+let filter_registration_input = function validate_registration_input(users_full_name, users_password, users_password_confirm, users_email, users_phone_number, database_connection) {
     const validator = require('validator');
     let validation_successful = false;
     let data_all_present = false;
@@ -45,14 +45,10 @@ let filter_registration_input = function validate_registration_input(users_full_
 
     if (validation_successful) { 
         //return {error: true, response: "pre_db"}
-        //Setup database connection and model for registrating new user
-        const database = require('../database');
-        const database_connection = new database("Tutum_Nichita", "EajHKuViBCaL62Sj", "service_loop"); 
+        //Setup database connection and model for registrating new user 
         
         try {
-            return new Promise(async (resolve, reject) => {
-                let database_connect_response = await database_connection.connect();
-
+            return new Promise(async (resolve, reject) => { 
                 let email_unique = true;
                 let find_if_email_unique_results = await database_connection.find_id_by_email(users_email);
 
@@ -60,16 +56,13 @@ let filter_registration_input = function validate_registration_input(users_full_
                     resolve({ error: true, response: find_if_email_unique_results.response });
                 } else { 
                     if(find_if_email_unique_results.response == "No user found!") { 
-                        database_connection.disconnect();
                         resolve({error: false, response: "Proceed."});
                     } else { 
-                        database_connection.disconnect();
                         resolve({error: true, response: "The email '" + users_email + "' is already taken. Please use a different email and try again."});
                     } 
                 } 
             }); 
         } catch (ex) {
-            database_connection.disconnect();
             return {error: true, response: ex};
         }
     }

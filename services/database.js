@@ -48,7 +48,9 @@ class database {
 
   //Function to close the mongoDB connection (80 active connections causes an error)
   disconnect() {
-    mongoose.connection.close();
+    mongoose.connection.close(function () {
+      console.log("ddd)"); 
+    });
   }
 
   /**
@@ -183,7 +185,7 @@ class database {
           resolve({ error: true, response: exception });
         });
     });
-  }  
+  }
 
   /**
    * A function that deletes all notifications from a specific email, we use this in our Spec files to test
@@ -269,9 +271,11 @@ class database {
 
     return new Promise((resolve, reject) => {
       userModel.findOneAndUpdate(filter, update).then(result => {
+        this.disconnect();
         resolve({ error: false, response: "User elevated successfully!" });
       })
         .catch((exception) => {
+          this.disconnect();
           resolve({ error: true, response: exception });
         });
     });
@@ -298,12 +302,12 @@ class database {
 
     //Create New Users from Schema 'User.js' in models folder
     let users_name = await this.getNameByEmail(users_email);
-
     newPost.std_name = users_name.users_full_name;
     newPost.std_email = users_email;
     newPost.std_avatar = "https://d00192082.alwaysdata.net/ServiceLoopServer/resources/images/base_user.png";
     newPost.post_title = request_title;
-    newPost.post_posted_on = dateformat(new Date(), 'mmmm dS');
+
+    newPost.post_posted_on = new Date();
     newPost.post_desc = request_description;
     newPost.post_desc_trunc = request_description.trunc(100);
 
@@ -314,6 +318,7 @@ class database {
       newPost.save(async function (err, post) {
         //If an error has occured, we do not create a notification but return an Object with the "error" key set to true and the error message in the "response" key
         if (err) {
+          contenxt.disconnect();
           resolve({ error: true, response: err });
         } else {
           //If there is no error, we create a notification for the user stating that their request has been sent
@@ -325,11 +330,14 @@ class database {
 
             //If the notification is sent, we return an object with the "error" key set to false along with a response
             if (!tutor_notification_response.error) {
+              contenxt.disconnect();
               resolve({ error: false, debug_message: "Post created successfully.", response: [post, notification_response.response, tutor_notification_response.response] });
             } else {
+              contenxt.disconnect();
               resolve({ error: true, response: notification_response.response });
             }
           } else {
+            contenxt.disconnect();
             resolve({ error: true, response: notification_response.response });
           }
         }
@@ -343,7 +351,6 @@ class database {
 
     return new Promise((resolve, reject) => {
       userModelSchema.findOne(filter).then(result => {
-        console.log(result);
         resolve(result);
       })
         .catch((exception) => {
@@ -371,7 +378,7 @@ class database {
     const dateformat = require('dateformat');
 
     let notificationModel = new notificationModelSchema();
-    let notification_posted_on = dateformat(new Date(), 'mmmm dS');
+    let notification_posted_on = new Date();
 
     notificationModel.notification_avatar = "https://d00192082.alwaysdata.net/ServiceLoopServer/resources/images/base_user.png";
     notificationModel.notification_title = notification_title;
@@ -414,12 +421,12 @@ class database {
     //Get todays date in the following format "January 9th 20"
     const dateformat = require('dateformat');
     //yyyy
-    let notification_posted_on = dateformat(new Date(), 'mmmm dS');
+    let notification_posted_on = new Date();
 
     //We check if there is any extra information
     if (extra_information !== null) {
       //If the tags array contains the tag "Tutorial request sent, we add a post id to the notification model"
-      if (notification_tags.includes("Tutorial request sent")) {
+      if (notification_tags.includes("Tutorial request sent") || notification_tags.includes("Tutorial requested") || notification_tags.includes("Tutorial request accepted")) {
         notificationModel.post_id = extra_information.post_id;
 
         if (typeof extra_information.modules !== 'undefined') {
@@ -464,7 +471,7 @@ class database {
    */
   get_tutor_notifications(notificationModelSchema, tutor_notfications_filter) {
     return new Promise((resolve, reject) => {
-      notificationModelSchema.find(tutor_notfications_filter).then((notifications) => {
+      notificationModelSchema.find(tutor_notfications_filter).sort({ notification_posted_on: -1 }).then((notifications) => {
         if (!notifications.length) {
           resolve({ error: false, response: "There are no notifications to display!" });
         } else {
@@ -507,9 +514,10 @@ class database {
 
         return new Promise((resolve, reject) => {
           //Here we find the normal notifications
-          notificationModelSchema.find(filter).then((notifications) => {
+          notificationModelSchema.find(filter).sort({ notification_posted_on: -1 }).then((notifications) => {
             //If there are no tutor or normal notifications to display, we send back a string
             if (!notifications.length && tutor_notifications.response === "There are no notifications to display!") {
+              this.disconnect();
               resolve({ error: true, response: "There are no notifications to display!" });
             } else {
               //If there are either normal or tutor notifications, we add the tutor notifications to the normal notifications and send them to the user
@@ -518,17 +526,20 @@ class database {
                   notifications.push(tutor_notifications.response[i]);
                 }
               }
-              console.log(tutor_notifications);
+
+              this.disconnect();
 
               resolve({ error: false, response: notifications });
             }
 
           })
             .catch((exception) => {
+              this.disconnect();
               resolve({ error: true, response: exception });
             });
         });
       } else {
+        this.disconnect();
         return tutor_notifications.response;
       }
     } else {
@@ -536,15 +547,18 @@ class database {
       const filter = { std_email: email, notification_tags: { "$nin": ["Tutorial requested"] } };
 
       return new Promise((resolve, reject) => {
-        notificationModelSchema.find(filter).then((notifications) => {
+        notificationModelSchema.find(filter).sort({ notification_posted_on: -1 }).then((notifications) => {
 
           if (notifications.length !== 0) {
+            this.disconnect();
             resolve({ error: false, response: notifications });
           } else {
+            this.disconnect();
             resolve({ error: false, response: 'There are no notifications to display!' });
           }
         })
           .catch((exception) => {
+            this.disconnect();
             console.log("error")
             resolve({ error: true, response: exception });
           });
@@ -565,16 +579,19 @@ class database {
     const filter = { std_email: { "$ne": email }, post_modules: { "$in": modules }, post_status: { "$in": "Open" } };
 
     return new Promise((resolve, reject) => {
-      postModel.find(filter).then((posts) => {
+      postModel.find(filter).sort({ post_posted_on: -1 }).then((posts) => {
         if (!posts || posts.length == 0) {
+          this.disconnect();
           resolve({ error: false, response: "There are no posts to display!" });
         } else {
+          this.disconnect();
           resolve({ error: false, response: posts });
         }
 
       })
         .catch((exception) => {
           console.log("error")
+          this.disconnect();
           resolve({ error: true, response: exception });
         });
     });
@@ -604,9 +621,11 @@ class database {
 
     return new Promise((resolve, reject) => {
       notificationModelSchema.findOneAndUpdate(filter, update).then(result => {
+        this.disconnect();
         resolve("Notification updated successfully!");
       })
         .catch((exception) => {
+          this.disconnect();
           resolve({ error: true, response: exception });
         });
     });
@@ -618,27 +637,28 @@ class database {
     const update = { post_tut_assigned: tutor_email, post_status: "In negotiation" };
 
     let post_status = await this.get_post_status(post_id);
-
+console.log("post status")
+console.log(post_status)
     if (!post_status.error) {
-      let notification_response = await this.create_notification("Tutorial request accepted", "You have successfully accepted a tutorial. Please fill out the agreement form by clicking the below button or locating this tutorial in 'My tutorials'", tutor_email, ["Tutorial request accepted"], { post_id: post_id });
+      //Tutor notification
+      let notification_response_tutor = await this.create_notification("Tutorial request accepted", "You have successfully accepted a tutorial. Please fill out the agreement form by clicking the below button or locating this tutorial in 'My tutorials'", tutor_email, ["Tutorial request accepted"], { post_id: post_id });
 
-      console.log(post_id);
-      if (!notification_response.error) {
+      if (!notification_response_tutor.error) {
         return new Promise((resolve, reject) => {
-          postModel.findOneAndUpdate(filter, update).then(result => {
-            console.log("Works")
-            console.log(result);
-            resolve({error: false, response: notification_response.response});
-          })
-            .catch((exception) => {
-              resolve({ error: true, response: exception });
-            });
+          postModel.findOneAndUpdate(filter, update).then(async result => {
+            let notification_response_student = await this.create_notification("Tutorial accepted", "A tutor has accepted to help you with the following tutorial '" + result.post_title + "'. The tutor will be in contact shortly.", result.std_email, ["Tutorial request accepted"], { post_id: post_id });
+
+            this.disconnect();
+            resolve({ error: false, response: { tutor_notification: notification_response_tutor.response, student_notification: notification_response_student } });
+          });
         });
       } else {
-        return {error: true, response: "Error creating a notification."};
+        this.disconnect();
+        return { error: true, response: "Error creating a notification." };
       }
     } else {
-      return {error: true, response: "The post you wish to tutor is no longer available!"};
+      this.disconnect();
+      return { error: true, response: "The post you wish to tutor is no longer available!" };
     }
   }
 
@@ -650,13 +670,42 @@ class database {
         if (!post) {
           resolve({ error: true, response: "Post no longer exists" });
         } else {
-          resolve({ error: false, response: post.post_status });
+          if (post.post_status === "Open") {
+            resolve({ error: false, response: post.post_status });
+          } else {
+            resolve({ error: true, response: "The post has been accepted by another tutor." });
+          }
         }
       })
         .catch((exception) => {
           console.log("error")
           resolve({ error: true, response: exception });
         });
+    });
+  }
+
+  reset() {
+    const postModel = require('../models/post');
+    const notificationModelSchema = require('../models/notifications');
+
+    return new Promise((resolve, reject) => {
+      postModel.deleteMany({}).then((post) => {
+        notificationModelSchema.deleteMany({})
+          .then((err, newUser) => {
+            resolve({ error: false, response: "Notification deleted successfully" });
+          })
+      });
+    });
+  }
+
+  get_notification_posts(notification_posts_id) {
+    const postModel = require('../models/post');
+
+    return new Promise((resolve, reject) => {
+      postModel.find({ _id: { "$in": notification_posts_id } }).then((posts) => {
+        this.disconnect();
+        resolve({ error: false, response: posts });
+      });
     });
   }
 }

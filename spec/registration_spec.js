@@ -13,14 +13,17 @@ describe('Register a new user', function () {
         let db_con_response = await database_connection.connect();
         let user_deleted_response = await database_connection.delete_user_by_email("D00192082@student.dkit.ie");
 
-        let test_1_result = await registration.create_new_user("Nichita Postolachi", "12345aA@", "12345aA@", "D00192082@student.dkit.ie", "0899854571");
+        let test_1_result = await registration.create_new_user("Nichita Postolachi", "12345aA@", "12345aA@", "D00192082@student.dkit.ie", "0899854571", database_connection);
 
         expect(test_1_result).toBe('User updated successfully!');
         done();
     });
 
     it('should return an error message that the current email is in use', async function (done) {
-        let test_2_result = await registration.create_new_user("Nichita Postolachi", "12345aA@", "12345aA@", "D00192082@student.dkit.ie", "0899854571");
+        const database_connection = new database("Tutum_Nichita", "EajHKuViBCaL62Sj", "service_loop");
+        let db_con_response = await database_connection.connect();
+        
+        let test_2_result = await registration.create_new_user("Nichita Postolachi", "12345aA@", "12345aA@", "D00192082@student.dkit.ie", "0899854571", database_connection);
         let test_2_result_response = test_2_result.response; 
 
         expect(test_2_result_response).toBe("The email 'D00192082@student.dkit.ie' is already taken. Please use a different email and try again.");

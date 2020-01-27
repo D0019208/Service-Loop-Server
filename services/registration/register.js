@@ -15,7 +15,7 @@
  * @returns {Promise} This Promise will contain an object that contains 2 keys: error and response, the "error" key will be a boolean 
  * that specifies wether the registration was successful or not and the "response" key will be a String that contains the response from the function
  */
-let create_new_user = async function create_new_user(users_full_name, users_password, users_password_confirm, users_email, users_phone_number) { 
+let create_new_user = async function create_new_user(users_full_name, users_password, users_password_confirm, users_email, users_phone_number, database_connection) { 
     /**
      * This is the function that will hash the users plaintext password
      *  
@@ -56,8 +56,7 @@ let create_new_user = async function create_new_user(users_full_name, users_pass
             let response = await database_connection.register_new_user(users_full_name, users_email, users_phone_number);
 
             if (response.error) {
-                console.log(err);
-                database_connection.disconnect();
+                console.log(err); 
                 resolve({ error: true, response: err });
             } else {
                 console.log("Success")
@@ -92,13 +91,11 @@ let create_new_user = async function create_new_user(users_full_name, users_pass
                 let find_user_id_results = await database_connection.find_id_by_email(users_email);
 
                 //If an error happens when we try to get the user from the database, we close the connection and return an error
-                if (find_user_id_results.error) {
-                    database_connection.disconnect();
+                if (find_user_id_results.error) { 
                     resolve({ error: true, response: find_user_id_results.response });
                 } else {
                     //If the function could not find a user, we again, disconnect and return an error
-                    if (find_user_id_results.response === "No user found!") {
-                        database_connection.disconnect();
+                    if (find_user_id_results.response === "No user found!") { 
                         resolve({ error: true, response: find_user_id_results.response });
                     } else {
                         //We get the users ID from the returned User
@@ -110,15 +107,12 @@ let create_new_user = async function create_new_user(users_full_name, users_pass
                         //let response = "IDK";
                         if (response !== "Digital Certificate creation failed.") {
                             resolve({ error: false, certificate_location: response, certificate_password: users_certificate_password, type: "digital_certificate" });
-                        } else {
-                            database_connection.disconnect();
+                        } else { 
                             resolve({ error: true, response: response });
                         }
                     }
                 }
-             } catch (err) {
-                database_connection.disconnect();
-                
+             } catch (err) { 
                  console.log(err)
                  resolve({ error: true, response: err });
              }
@@ -137,21 +131,16 @@ let create_new_user = async function create_new_user(users_full_name, users_pass
     const filter_registration_input = require('./filter_registration_input');
 
     //Valiate user data
-    let filtering_response = await filter_registration_input.validate_registration_input(users_full_name, users_password, users_password_confirm, users_email, users_phone_number);
+    let filtering_response = await filter_registration_input.validate_registration_input(users_full_name, users_password, users_password_confirm, users_email, users_phone_number, database_connection);
 
     //If there is an error in validating the users data, we exit.
     if (filtering_response.error) {
         console.log("Exit")
+        database_connection.disconnect();
         return filtering_response;
-    }
+    } 
 
-    //Setup database connection and model for registrating new user
-    const database = require('../database');
-    const database_connection = new database("Tutum_Nichita", "EajHKuViBCaL62Sj", "service_loop");
-
-    try {
-        //Connect to the database
-        let database_connect_response = await database_connection.connect(); 
+    try { 
 
         //Insert the user into the database
         let user_insert_response = await insert_user_into_db(database_connection, users_full_name, users_email, users_phone_number);

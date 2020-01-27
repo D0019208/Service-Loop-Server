@@ -19,7 +19,7 @@ const PostSchema = new mongoose.Schema({
   },
   post_posted_on:
   {
-    type: String,
+    type: Date,
     required: true
   },
   post_desc:
