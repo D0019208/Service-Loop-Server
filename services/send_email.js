@@ -5,8 +5,8 @@ let send_email = function send_email(email_object) {
     var client = nodemailer.createTransport({
         service: 'SendGrid',
         auth: {
-            user: 'D00192082',
-            pass: '3820065Np2!'
+            user: '_______',
+            pass: '_______'
         }
     });
 
