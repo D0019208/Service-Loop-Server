@@ -42,7 +42,28 @@ const PostSchema = new mongoose.Schema({
     type: Array,
     required: true
   },
-  post_tut_assigned:
+  post_tutor_email:
+  {
+    type: String
+  },
+  post_tutor_name: {
+    type: String
+  },
+  post_agreement_offered: 
+  {
+    type: Boolean,
+    default: false
+  },
+  post_agreement_signed: 
+  {
+    type: Boolean,
+    default: false
+  },
+  post_agreement_url:
+  {
+    type: String
+  },
+  tutor_signature:
   {
     type: String
   },

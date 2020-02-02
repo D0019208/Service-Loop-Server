@@ -18,6 +18,7 @@
     "jsonwebtoken": "^8.5.1",
     "mongoose": "^5.7.13",
     "node-openssl-p12": "^0.1.8",
+    "nodemailer": "^6.4.2",
     "onesignal-node": "^3.0.0",
     "pdfkit": "^0.10.0",
     "ringcaptcha-nodejs": "0.0.3",

@@ -1,7 +1,7 @@
 console.log('Example app started!')
 var XooaClient = require("xooa-sdk");
 var xooaClient = new XooaClient();
-xooaClient.setApiToken("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJBcGlLZXkiOiJHS1hFM0czLVYxRTQwNjItR1g1NzBWNi1COEg4RDdHIiwiQXBpU2VjcmV0IjoieHU3TzQ3bTgyVGlpZFBaIiwiUGFzc3BocmFzZSI6IjQ2ZWY3MzcxYWIwMDhmNTNhNTJjNTU0YzZkYjc5ZDkxIiwiaWF0IjoxNTczNTkyNTE4fQ.ZQ2SIh2J7rTw6yTZejg_0_fRDR24Ngg7DDg1PHYKOaE");
+xooaClient.setApiToken("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJBcGlLZXkiOiJZTjdXMUowLUpINk1CVjctTkRUWEEzTi04NEJYWU1XIiwiQXBpU2VjcmV0IjoiWkJzMGVwWTdCWFlQVm9QIiwiUGFzc3BocmFzZSI6IjIxZTI4MDlkOGI5NjBlNWIyMjkxYzY2YmEzYjMzNDdjIiwiaWF0IjoxNTgwMzk2MDk3fQ.WJNZnfXuATzZLdfVBKwyI3tiKY_JFehyPC6LQ0kaMSU");
 
  async function add_new_identity_to_blockchain(identity_name, name, value) {
  	var newIdentity = {
@@ -44,7 +44,7 @@ async function get_by_key() {
 console.log(error, pendingResponse, data);
 }
 
-//add_new_identity_to_blockchain("Frank Keenan User", "Frank Keenan", "")
+add_new_identity_to_blockchain("Frank Keenan User", "Frank Keenan", "")
 //get_from_blockchain_by_block_number("66");
 //get_from_blockchain_by_tx_id('f2caf767581ac753b709262e514662ca9812401a22bea2276ff34c7a688adf17')
 //add_transaction_to_blockchain(["CA2", "This is a test for CA2"]);

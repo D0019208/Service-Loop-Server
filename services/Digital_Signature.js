@@ -42,46 +42,27 @@ class Digitally_Sign {
             // Pipe its output somewhere, like to a file or HTTP response
             // See below for browser usage
             //Maybe put on top for better PERFORMANCE
-            let writeStream = doc.pipe(fs.createWriteStream('./resources/pdfs/' + pdf_name + '.pdf')); 
+            let writeStream = doc.pipe(fs.createWriteStream('./resources/pdfs/' + pdf_name + '.pdf'));
 
             writeStream.on('error', function (err) {
                 if (err.code === 'ENOENT') {
                     reject("File creation failed!");
                 } else {
-                    reject("An unexpected error has occured when creating files!"); 
-                } 
+                    reject("An unexpected error has occured when creating files!");
+                }
             });
 
             writeStream.on('finish', function () {
                 resolve("resources/pdfs/" + pdf_name);
-            }); 
+            });
         });
 
     }
 
-    /**
-     * This is the function that will be called to create and sign a PDF.
-     * It first goes to the create_pdf() function where it creates a PDF
-     * based on the contents provided and then digitally signs that PDF.
-     * 
-     * @param {This is the name of the PDF E.G. 'contract.pdf'} pdf_name 
-     * @param {This is the text content of the PDF} pdf_content 
-     * @param {This is the signature of party1} party1_signature
-     * @param {This is the signature of party2} party2_signature
-     */
-    async create_digitally_signed_pdf(pdf_name, pdf_content, party1_signature, party2_signature) {
-        let pdf_path;
-        //Create the PDF and get its path
-        try {
-            pdf_path = await this.create_pdf(pdf_name, pdf_content, party1_signature, party2_signature);
-        } catch(err) {
-            return err;
-        } 
-
+    async digitally_sign_pdf(pdf_path, digital_certificate, digital_certificate_password, append_signature = false) {
         return new Promise((resolve, reject) => {
-            //Check to see that PDF has been created 
-                //Digitally Sign for first user (Must add image of signature later perhaps) e.g. resources/pdfs/testPDF.pdf
-                exec('java -jar "resources/java/JSignPdf.jar" "' + pdf_path + '.pdf" -v --visible-signature -d resources/pdfs -a --bg-path "resources/images/adobe_watersign.png" -page 1000 -kst PKCS12 -ksf "resources/keystore_files/test.p12" -ksp test 2>&1',
+            if (!append_signature) {
+                exec('java -jar "resources/java/JSignPdf.jar" "' + pdf_path + '" -v --visible-signature -d resources/pdfs -a --bg-path "resources/images/adobe_watersign.png" -page 1000 -kst PKCS12 -ksf "' + digital_certificate + '" -ksp ' + digital_certificate_password + ' 2>&1',
                     (error, stdout, stderr) => {
                         //On error, delete the PDFs, on success, sign second user
                         if (error !== null) {
@@ -92,47 +73,95 @@ class Digitally_Sign {
                             console.groupEnd();
 
                             //Delete PDF
-                            fs.unlinkSync(pdf_path + ".pdf");
+                            fs.unlinkSync(pdf_path);
 
                             //Return error
-                            reject("Failed to create PDF, please try again.")
+                            resolve({ error: true, response: "Failed to create PDF, please try again." });
                         } else {
-                            //Delete PDF
-                            fs.unlinkSync(pdf_path + ".pdf");
-
-                            //Digitally Sign for second user (Must add image of signature later perhaps) e.g. resources/pdfs/testPDF_signed.pdf
-                            exec('java -jar "resources/java/JSignPdf.jar" "' + pdf_path + '_signed.pdf" -v --visible-signature -d resources/pdfs -llx 612 -lly 0 -urx 500 -ury 100 -a --append --bg-path "resources/images/adobe_watersign.png" -page 1000 -kst PKCS12 -ksf "resources/keystore_files/test.p12" -ksp test 2>&1',
-                                (error, stdout, stderr) => {
-                                    //On error, delete the PDFs, on success, delete the old PDF
-                                    if (error !== null) {
-                                        console.groupCollapsed("Error handling 2nd signing");
-                                        console.log('stdout: ' + stdout);
-                                        console.log('stderr: ' + stderr);
-                                        console.log('exec error: ' + error);
-                                        console.groupEnd();
-
-                                        //Delete PDF
-                                        fs.unlinkSync(pdf_path + "_signed.pdf");
-                                        fs.unlinkSync(pdf_path + "_signed_signed.pdf");
-
-                                        //Return error
-                                        reject("Failed to create PDF, please try again.")
-                                    } else {
-                                        fs.unlinkSync(pdf_path + "_signed.pdf");
-
-                                        //Rename the file from John_Doe_and_Jane_Doe_contract_signed_signed.pdf to just
-                                        //John_Doe_and_Jane_Doe_contract_signed.pdf
-                                        fs.rename(pdf_path + "_signed_signed.pdf", pdf_path + "_signed.pdf", (err) => {
-                                            if (err) {
-                                                console.log('ERROR: ' + err);
-                                            } else {
-                                                resolve(pdf_path + "_signed.pdf");
-                                            }
-                                        });
-                                    }
-                                });
+                            fs.unlinkSync(pdf_path);
+                            resolve({ error: false, response: pdf_path.replace(/(\.[\w\d_-]+)$/i, '_signed$1') });
                         }
-                    }); 
+                    });
+            } else {
+
+            }
+        });
+    }
+
+    /**
+     * This is the function that will be called to create and sign a PDF.
+     * It first goes to the create_pdf() function where it creates a PDF
+     * based on the contents provided and then digitally signs that PDF.
+     * 
+     * @param {This is the name of the PDF E.G. 'contract.pdf'} pdf_name - 
+     * @param {This is the text content of the PDF} pdf_content 
+     * @param {This is the signature of party1} party1_signature
+     * @param {This is the signature of party2} party2_signature
+     */
+    async create_digitally_signed_pdf(pdf_name, pdf_content, party1_signature, party2_signature) {
+        let pdf_path;
+        //Create the PDF and get its path
+        try {
+            pdf_path = await this.create_pdf(pdf_name, pdf_content, party1_signature, party2_signature);
+        } catch (err) {
+            return err;
+        }
+
+        return new Promise((resolve, reject) => {
+            //Check to see that PDF has been created 
+            //Digitally Sign for first user (Must add image of signature later perhaps) e.g. resources/pdfs/testPDF.pdf
+            exec('java -jar "resources/java/JSignPdf.jar" "' + pdf_path + '.pdf" -v --visible-signature -d resources/pdfs -a --bg-path "resources/images/adobe_watersign.png" -page 1000 -kst PKCS12 -ksf "resources/keystore_files/test.p12" -ksp test 2>&1',
+                (error, stdout, stderr) => {
+                    //On error, delete the PDFs, on success, sign second user
+                    if (error !== null) {
+                        console.groupCollapsed("Error handling 1st signing");
+                        console.log('stdout: ' + stdout);
+                        console.log('stderr: ' + stderr);
+                        console.log('exec error: ' + error);
+                        console.groupEnd();
+
+                        //Delete PDF
+                        fs.unlinkSync(pdf_path + ".pdf");
+
+                        //Return error
+                        reject("Failed to create PDF, please try again.")
+                    } else {
+                        //Delete PDF
+                        fs.unlinkSync(pdf_path + ".pdf");
+
+                        //Digitally Sign for second user (Must add image of signature later perhaps) e.g. resources/pdfs/testPDF_signed.pdf
+                        exec('java -jar "resources/java/JSignPdf.jar" "' + pdf_path + '_signed.pdf" -v --visible-signature -d resources/pdfs -llx 612 -lly 0 -urx 500 -ury 100 -a --append --bg-path "resources/images/adobe_watersign.png" -page 1000 -kst PKCS12 -ksf "resources/keystore_files/test.p12" -ksp test 2>&1',
+                            (error, stdout, stderr) => {
+                                //On error, delete the PDFs, on success, delete the old PDF
+                                if (error !== null) {
+                                    console.groupCollapsed("Error handling 2nd signing");
+                                    console.log('stdout: ' + stdout);
+                                    console.log('stderr: ' + stderr);
+                                    console.log('exec error: ' + error);
+                                    console.groupEnd();
+
+                                    //Delete PDF
+                                    fs.unlinkSync(pdf_path + "_signed.pdf");
+                                    fs.unlinkSync(pdf_path + "_signed_signed.pdf");
+
+                                    //Return error
+                                    reject("Failed to create PDF, please try again.")
+                                } else {
+                                    fs.unlinkSync(pdf_path + "_signed.pdf");
+
+                                    //Rename the file from John_Doe_and_Jane_Doe_contract_signed_signed.pdf to just
+                                    //John_Doe_and_Jane_Doe_contract_signed.pdf
+                                    fs.rename(pdf_path + "_signed_signed.pdf", pdf_path + "_signed.pdf", (err) => {
+                                        if (err) {
+                                            console.log('ERROR: ' + err);
+                                        } else {
+                                            resolve(pdf_path + "_signed.pdf");
+                                        }
+                                    });
+                                }
+                            });
+                    }
+                });
         });
     }
 

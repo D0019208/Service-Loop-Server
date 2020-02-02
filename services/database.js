@@ -49,7 +49,7 @@ class database {
   //Function to close the mongoDB connection (80 active connections causes an error)
   disconnect() {
     mongoose.connection.close(function () {
-      console.log("ddd)"); 
+      console.log("ddd)");
     });
   }
 
@@ -321,6 +321,8 @@ class database {
           contenxt.disconnect();
           resolve({ error: true, response: err });
         } else {
+          console.log("This post")
+          console.log(post);
           //If there is no error, we create a notification for the user stating that their request has been sent
           let notification_response = await contenxt.create_notification("Tutorial request sent", "You have successfully requested a tutorial for the following modules: " + request_modules.join(', ') + ". A tutor will be in contact with you as soon as possible.", post.std_email, ["Tutorial request sent"], { post_id: post._id, modules: request_modules });
 
@@ -426,7 +428,7 @@ class database {
     //We check if there is any extra information
     if (extra_information !== null) {
       //If the tags array contains the tag "Tutorial request sent, we add a post id to the notification model"
-      if (notification_tags.includes("Tutorial request sent") || notification_tags.includes("Tutorial requested") || notification_tags.includes("Tutorial request accepted")) {
+      if (notification_tags.includes("Tutorial request sent") || notification_tags.includes("Tutorial requested") || notification_tags.includes("Tutorial request accepted") || notification_tags.includes("Tutorial agreement offered")) {
         notificationModel.post_id = extra_information.post_id;
 
         if (typeof extra_information.modules !== 'undefined') {
@@ -597,13 +599,52 @@ class database {
     });
   }
 
-  /**
-   * A function that sets a notification to "Read"
-   * 
-   * @param {VARIABLE TYPE} VARIABLE_NAME - Variable description, e.g. Example
-   * 
-   * @returns {Return_Type} Explain what the function returns
-   */
+  //TEST THIS
+  get_all_users_tutorials(email) {
+    const postModel = require('../models/post');
+    const filter = { std_email: email };
+
+    return new Promise((resolve, reject) => {
+      postModel.find(filter).sort({ post_posted_on: -1 }).then((posts) => {
+        if (!posts || posts.length == 0) {
+          this.disconnect();
+          resolve({ error: false, response: "There are no posts to display!" });
+        } else {
+          this.disconnect();
+          resolve({ error: false, response: posts });
+        }
+
+      })
+        .catch((exception) => {
+          console.log("error")
+          this.disconnect();
+          resolve({ error: true, response: exception });
+        });
+    });
+  }
+
+  //TEST THIS
+  get_all_tutor_tutorials(email) {
+    const postModel = require('../models/post');
+    const filter = { post_tutor_email: email };
+
+    return new Promise((resolve, reject) => {
+      postModel.find(filter).sort({ post_posted_on: -1 }).then((posts) => {
+        if (!posts || posts.length == 0) {
+          this.disconnect();
+          resolve({ error: false, response: "There are no posts to display!" });
+        } else {
+          this.disconnect();
+          resolve({ error: false, response: posts });
+        }
+      })
+        .catch((exception) => {
+          console.log("error")
+          this.disconnect();
+          resolve({ error: true, response: exception });
+        });
+    });
+  }
 
   /**
    * A function that sets a notification to "Read"
@@ -631,14 +672,14 @@ class database {
     });
   }
   //TO BE CONTINUED
-  async accept_post(tutor_email, post_id) {
+  async accept_post(tutor_email, tutor_name, post_id) {
     const postModel = require('../models/post');
     const filter = { _id: post_id };
-    const update = { post_tut_assigned: tutor_email, post_status: "In negotiation" };
+    const update = { post_tutor_email: tutor_email, post_tutor_name: tutor_name, post_status: "In negotiation" };
 
     let post_status = await this.get_post_status(post_id);
-console.log("post status")
-console.log(post_status)
+    console.log("post status")
+    console.log(post_status)
     if (!post_status.error) {
       //Tutor notification
       let notification_response_tutor = await this.create_notification("Tutorial request accepted", "You have successfully accepted a tutorial. Please fill out the agreement form by clicking the below button or locating this tutorial in 'My tutorials'", tutor_email, ["Tutorial request accepted"], { post_id: post_id });
@@ -646,13 +687,14 @@ console.log(post_status)
       if (!notification_response_tutor.error) {
         return new Promise((resolve, reject) => {
           postModel.findOneAndUpdate(filter, update).then(async result => {
-            let notification_response_student = await this.create_notification("Tutorial accepted", "A tutor has accepted to help you with the following tutorial '" + result.post_title + "'. The tutor will be in contact shortly.", result.std_email, ["Tutorial request accepted"], { post_id: post_id });
+            let notification_response_student = await this.create_notification("Tutorial accepted", tutor_name + " has accepted to help you with the following tutorial '" + result.post_title + "'. The tutor will be in contact shortly.", result.std_email, ["Tutorial request accepted"], { post_id: post_id });
 
             this.disconnect();
             resolve({ error: false, response: { tutor_notification: notification_response_tutor.response, student_notification: notification_response_student } });
           });
         });
       } else {
+        console.log(notification_response_tutor)
         this.disconnect();
         return { error: true, response: "Error creating a notification." };
       }
@@ -698,7 +740,10 @@ console.log(post_status)
     });
   }
 
+
+  //TEST THIS
   get_notification_posts(notification_posts_id) {
+    console.log(notification_posts_id)
     const postModel = require('../models/post');
 
     return new Promise((resolve, reject) => {
@@ -706,6 +751,47 @@ console.log(post_status)
         this.disconnect();
         resolve({ error: false, response: posts });
       });
+    });
+  }
+
+  //TEST THIS
+  get_digital_certificate_details(email) {
+    console.log(email)
+    const userModel = require('../models/users');
+
+    return new Promise((resolve, reject) => {
+      userModel.findOne({ user_email: email }).then((user) => {
+        console.log(user)
+        resolve({certificate_path: user.user_digital_certificate_path, certificate_password: user.user_digital_certificate_password });
+      });
+    });
+  }
+
+  update_post_agreement_status(post_id) {
+    console.log(post_id);
+    const postModel = require('../models/post');
+
+    const filter = { _id: post_id };
+    const update = { post_agreement_offered: true };
+
+    return new Promise((resolve, reject) => {
+      postModel.findOneAndUpdate(filter, update).then(result => {
+        console.log(result)
+        resolve(result);
+      })
+    });
+  }
+
+  update_post_agreement_url(post_id, agreement_url, tutor_signature_data) { 
+    const postModel = require('../models/post');
+
+    const filter = { _id: post_id };
+    const update = { post_agreement_url: agreement_url, tutor_signature: tutor_signature_data };
+
+    return new Promise((resolve, reject) => {
+      postModel.findOneAndUpdate(filter, update).then(result => { 
+        resolve(result);
+      })
     });
   }
 }

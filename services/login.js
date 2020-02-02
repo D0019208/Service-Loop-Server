@@ -19,7 +19,14 @@ let check_user_credentials = async function check_user_credentials(users_email, 
         return false;
     } else {
         database_connection.disconnect();
-        return {password_matches: await bcrypt.compare(users_password, password_hash.response.user_password), user: password_hash};
+        let password_correct = await bcrypt.compare(users_password, password_hash.response.user_password)
+
+        if(password_correct) {
+           return {password_matches: password_correct, user: password_hash}; 
+        } else {
+            return {password_matches: password_correct}
+        }
+        
     }
 
 }
@@ -40,7 +47,7 @@ let login_user = async function login_user(users_email, users_password, database
     let JWT_SECRET = 'addjsonwebtokensecretherelikeQuiscustodietipsoscustodes';
 
     //Call a function to compare the plaintext password of the user against the hash from the database
-    let password_correct = await check_user_credentials(users_email, users_password);
+    let password_correct = await check_user_credentials(users_email, users_password, database_connection);
 
     //If the passwords match, we create the JWT
     if (password_correct.password_matches) {

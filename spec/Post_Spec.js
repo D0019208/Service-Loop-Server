@@ -17,9 +17,7 @@ describe('Loading all tutorials', function () {
         let result = await database_connection.add_tutorial("Test", "Test", ["JavaScript", "PHP"], "D00192082@student.dkit.ie");
         db_con_response = await database_connection.connect(); 
         let test_1_result = await database_connection.get_all_elegible_posts("D00192082@student.dkit.ie", ["JavaScript", "PHP"]);
-
-console.log("saaf")
-        console.log(test_1_result);
+ 
         expect(test_1_result.error).toBe(false);
         done();
     }); 
@@ -53,7 +51,7 @@ describe('Setting a posts status', function () {
         let result = await database_connection.add_tutorial("Test", "Test", ["JavaScript", "PHP"], "D00192082@student.dkit.ie");
 
         db_con_response = await database_connection.connect(); 
-        let test_1_result = await database_connection.accept_post("D00192082@student.dkit.ie", result.response[0]._id);
+        let test_1_result = await database_connection.accept_post("D00192082@student.dkit.ie", "John Wick", result.response[0]._id);
 
         expect(test_1_result.error).toBe(false);
         done();
@@ -65,8 +63,8 @@ describe('Setting a posts status', function () {
 
         let result = await database_connection.add_tutorial("Test", "Test", ["JavaScript", "PHP"], "D00192082@student.dkit.ie");
         //result._id is wrong syntax, still tests code however
-        let buffer = await database_connection.accept_post("D00192082@student.dkit.ie", result._id);
-        let test_2_result = await database_connection.accept_post("D00192082@student.dkit.ie", result._id);
+        let buffer = await database_connection.accept_post("D00192082@student.dkit.ie", "John Wick", result._id);
+        let test_2_result = await database_connection.accept_post("D00192082@student.dkit.ie", "John Wick", result._id);
 
         expect(test_2_result.response).toBe("The post you wish to tutor is no longer available!");
         done();
