@@ -67,6 +67,18 @@ const PostSchema = new mongoose.Schema({
   {
     type: String
   },
+  tutorial_date: 
+  {
+    type: String
+  },
+  tutorial_time:
+  {
+    type: String
+  },
+  tutorial_room:
+  {
+    type: String
+  },
   expire_at: {
     type: Date,
     default: Date.now, expires: 2505600

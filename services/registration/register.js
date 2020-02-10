@@ -25,6 +25,8 @@ let create_new_user = async function create_new_user(users_full_name, users_pass
      * that specifies wether the registration was successful or not and the "response" key will be a String that contains the hashed password from the function
      */
     const users_password_hash = (users_password) => {
+        return {error: false, response: "12345aA@", type: "password_hash"};
+
         return new Promise((resolve, reject) => {
             const bcrypt = require('bcrypt');
             const saltRounds = 10;
@@ -76,7 +78,7 @@ let create_new_user = async function create_new_user(users_full_name, users_pass
      * that specifies wether the registration was successful or not and the "response" key will be a String that contains the response from the function
      */
     const p12_certificate_response = (database_connection, users_full_name, users_email) => {
-        return new Promise(async (resolve, reject) => {
+        return new Promise(async (resolve, reject) => { 
             const create_p12_certificate = require('./create_p12_certificate');
             const generator = require('generate-password');
 
@@ -136,6 +138,7 @@ let create_new_user = async function create_new_user(users_full_name, users_pass
     //If there is an error in validating the users data, we exit.
     if (filtering_response.error) {
         console.log("Exit")
+        console.log(filtering_response)
         database_connection.disconnect();
         return filtering_response;
     } 
@@ -175,6 +178,7 @@ let create_new_user = async function create_new_user(users_full_name, users_pass
                 .catch((error) => {
                     database_connection.disconnect();
                     console.log("Promises rejected")
+                    console.log(error)
                     return {error: true, response: "error"};
                 });
         } else {

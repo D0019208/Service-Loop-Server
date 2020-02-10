@@ -59,10 +59,10 @@ class Digitally_Sign {
 
     }
 
-    async digitally_sign_pdf(pdf_path, digital_certificate, digital_certificate_password, append_signature = false) {
+    async digitally_sign_pdf(pdf_path, digital_certificate, append_signature = false) {
         return new Promise((resolve, reject) => {
             if (!append_signature) {
-                exec('java -jar "resources/java/JSignPdf.jar" "' + pdf_path + '" -v --visible-signature -d resources/pdfs -a --bg-path "resources/images/adobe_watersign.png" -page 1000 -kst PKCS12 -ksf "' + digital_certificate + '" -ksp ' + digital_certificate_password + ' 2>&1',
+                exec('java -jar "resources/java/JSignPdf.jar" "' + pdf_path + '" -v --visible-signature -d resources/pdfs -a --bg-path "resources/images/adobe_watersign.png" -page 1000 -kst PKCS12 -ksf "' + digital_certificate.tutor.certificate_path + '" -ksp ' + digital_certificate.tutor.certificate_password + ' 2>&1',
                     (error, stdout, stderr) => {
                         //On error, delete the PDFs, on success, sign second user
                         if (error !== null) {
@@ -83,7 +83,59 @@ class Digitally_Sign {
                         }
                     });
             } else {
+                exec('java -jar "resources/java/JSignPdf.jar" "' + pdf_path + '" -v --visible-signature -d resources/pdfs -a --bg-path "resources/images/adobe_watersign.png" -page 1000 -kst PKCS12 -ksf "' + digital_certificate.tutor.certificate_path + '" -ksp ' + digital_certificate.tutor.certificate_password + ' 2>&1',
+                    (error, stdout, stderr) => {
+                        //On error, delete the PDFs, on success, sign second user
+                        if (error !== null) {
+                            console.groupCollapsed("Error handling 1st signing");
+                            console.log('stdout: ' + stdout);
+                            console.log('stderr: ' + stderr);
+                            console.log('exec error: ' + error);
+                            console.groupEnd();
 
+                            //Delete PDF
+                            fs.unlinkSync(pdf_path);
+
+                            //Return error
+                            resolve({error: true, response: "Failed to create PDF, please try again."})
+                        } else {
+                            //Delete the original PDF
+                            fs.unlinkSync(pdf_path);
+
+                            //Digitally Sign for second user
+                            exec('java -jar "resources/java/JSignPdf.jar" "' + pdf_path.substring(0, pdf_path.length - 4) + '_signed.pdf" -v --visible-signature -d resources/pdfs -llx 612 -lly 0 -urx 500 -ury 100 -a --append --bg-path "resources/images/adobe_watersign.png" -page 1000 -kst PKCS12 -ksf "' + digital_certificate.student.certificate_path + '" -ksp ' + digital_certificate.student.certificate_password + ' 2>&1',
+                                (error, stdout, stderr) => {
+                                    //On error, delete the PDFs, on success, delete the old PDF
+                                    if (error !== null) {
+                                        console.groupCollapsed("Error handling 2nd signing");
+                                        console.log('stdout: ' + stdout);
+                                        console.log('stderr: ' + stderr);
+                                        console.log('exec error: ' + error);
+                                        console.groupEnd();
+
+                                        //Delete PDF
+                                        fs.unlinkSync(pdf_path.substring(0, pdf_path.length - 4) + "_signed.pdf");
+                                        fs.unlinkSync(pdf_path.substring(0, pdf_path.length - 4) + "_signed_signed.pdf");
+
+                                        //Return error
+                                        resolve({error: true, response: "Failed to create PDF, please try again."})
+                                    } else {
+                                        fs.unlinkSync(pdf_path.substring(0, pdf_path.length - 4) + "_signed.pdf");
+
+                                        //Rename the file from John_Doe_and_Jane_Doe_contract_signed_signed.pdf to just
+                                        //John_Doe_and_Jane_Doe_contract_signed.pdf
+                                        console.log(pdf_path.substring(0, pdf_path.length - 4))
+                                        fs.rename(pdf_path.substring(0, pdf_path.length - 4) + "_signed_signed.pdf", pdf_path.substring(0, pdf_path.length - 4) + "_signed_final.pdf", (err) => {
+                                            if (err) {
+                                                resolve({error: true, response: err})
+                                            } else {
+                                                resolve({error: false, response: pdf_path.substring(0, pdf_path.length - 4) + "_signed_final.pdf"});
+                                            }
+                                        });
+                                    }
+                                });
+                        }
+                    });
             }
         });
     }

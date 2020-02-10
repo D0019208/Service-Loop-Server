@@ -1,17 +1,19 @@
-let send_email = function send_email(email_object) { 
-    return;
-    var nodemailer = require('nodemailer'); 
+let send_email = function send_email(email_object) {
+    //return;
+    var nodemailer = require('nodemailer');
 
     var client = nodemailer.createTransport({
-        service: 'SendGrid',
+        host: 'smtp.gmail.com',
+        port: 465,
+        secure: true,
         auth: {
-            user: 'D00192082',
-            pass: '3820065Np2!'
+            user: 'nikito888@gmail.com',
+            pass: '______'
         }
     });
 
     let date = new Date();
-    let today = date.getDay() + "-" + date.getMonth() + 1 + "-" + date.getFullYear();
+    let today = date.getDate() + "-" + parseInt(date.getMonth() + 1) + "-" + date.getFullYear();
 
     var email = {
         from: 'D00192082@student.dkit.ie',
@@ -48,7 +50,7 @@ let send_email = function send_email(email_object) {
                 path: email_object.agreement_url,
                 contentType: 'application/pdf'
             }]
-    };  
+    };
 
     client.sendMail(email, function (err, info) {
         if (err) {
@@ -58,7 +60,7 @@ let send_email = function send_email(email_object) {
             console.log('Message sent: ' + info.response);
         }
     });
- 
+
 }
 
 exports.send_email = send_email;

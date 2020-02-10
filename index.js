@@ -87,9 +87,13 @@ app.post('/verify_code', async (req, res) => {
 
 app.post('/verify_register_input', async (req, res) => {
   const validator = require('validator');
+  const database = require('./services/database');
   const filter_registration_input = require('./services/registration/filter_registration_input');
   //validator.escape(req.body.users_first_name + " " + req.body.users_last_name)
-  let filtering_response = await filter_registration_input.validate_registration_input(validator.escape(req.body.users_full_name), req.body.users_password, req.body.users_password_confirm, validator.escape(req.body.users_email), validator.escape(req.body.users_phone_number));
+  const database_connection = new database("Tutum_Nichita", "EajHKuViBCaL62Sj", "service_loop");
+  let db_con_response = await database_connection.connect();
+
+  let filtering_response = await filter_registration_input.validate_registration_input(validator.escape(req.body.users_full_name), req.body.users_password, req.body.users_password_confirm, validator.escape(req.body.users_email), validator.escape(req.body.users_phone_number), database_connection);
 
   res.json(JSON.stringify(filtering_response));
   return;
@@ -214,7 +218,7 @@ app.post('/request_tutorial', async (req, res) => {
   const database_connection = new database("Tutum_Nichita", "EajHKuViBCaL62Sj", "service_loop");
   let db_con_response = await database_connection.connect();
 
-  if (req.body.request_title.length == 0 || req.body.request_description.length == 0 || typeof req.body.request_modules == "undefined" || req.body.request_modules == null || req.body.request_modules.length == null || req.body.users_email.length == 0) {
+  if (req.body.request_title.length == 0 || req.body.request_description.length == 0 || typeof req.body.request_modules[0] == "undefined" || req.body.request_modules == null || req.body.request_modules.length == null || req.body.users_email.length == 0) {
     res.json({ error: true, response: "Please fill in all fields before proceeding." });
     return;
   }
@@ -307,30 +311,42 @@ app.post('/get_all_tutor_tutorials', async (req, res) => {
 });
 
 //TEST THIS
-app.post('/offer_agreement', async (req, res) => {    
-  if(req.body.tutorial_time == "00:00" || req.body.tutorial_room == "" || req.body.tutorial_room == "" || req.body.tutor_signature == "") {
-    res.json({error: true, response: "Please fill in all fields before proceeding."});
+app.post('/offer_agreement', async (req, res) => {
+  if (req.body.tutorial_room == "" || req.body.tutorial_room == "" || req.body.tutor_signature == "") {
+    res.json({ error: true, response: "Please fill in all fields before proceeding." });
   }
-  
+
   const database = require('./services/database');
   const offer_agreement = require('./services/offer_agreement');
 
   const database_connection = new database("Tutum_Nichita", "EajHKuViBCaL62Sj", "service_loop");
   let db_con_response = await database_connection.connect();
-  
+
   res.json(await offer_agreement.offer_agreement(database_connection, req.body.tutorial_id, req.body.email, req.body.name, req.body.tutorial_date.substring(0, 10), req.body.tutorial_time, req.body.tutorial_room, req.body.tutor_signature));
   return;
 });
 
 //TEST THIS
-app.post('/accept_agreement', async (req, res) => {    
+app.post('/accept_agreement', async (req, res) => {
   const database = require('./services/database');
   const accept_agreement = require('./services/accept_agreement');
 
   const database_connection = new database("Tutum_Nichita", "EajHKuViBCaL62Sj", "service_loop");
   let db_con_response = await database_connection.connect();
-  
-  res.json(await accept_agreement.accept_agreement(database_connection, req.body.tutorial_id, req.body.tutor_signature));
+
+  res.json(await accept_agreement.accept_agreement(database_connection, req.body.tutorial_id, req.body.student_signature));
+  return;
+});
+
+//TEST THIS
+app.post('/reject_agreement', async (req, res) => {
+  const database = require('./services/database');
+  const accept_agreement = require('./services/accept_agreement');
+
+  const database_connection = new database("Tutum_Nichita", "EajHKuViBCaL62Sj", "service_loop");
+  let db_con_response = await database_connection.connect();
+
+  res.json(await database_connection.reject_agreement(req.body.tutorial_id));
   return;
 });
 
@@ -361,13 +377,22 @@ app.post('/accept_agreement', async (req, res) => {
 //   return;
 // })();
 
-var server = app.listen(3001, async function () {
-  console.log('Example app started!');  
-});
+// var server = app.listen(3001, async function () {
+  // const register_new_user = require('./services/registration/register');
+  // const validator = require('validator');
+  // const database = require('./services/database');
 
-//  var server = app.listen(process.env.ALWAYSDATA_HTTPD_PORT, process.env.ALWAYSDATA_HTTPD_IP, function () {
-//    console.log('Example app started!');
-//  });
+  // //const database_connection = new database("Tutum_Nichita", "EajHKuViBCaL62Sj", "service_loop");
+  // //let db_con_response = await database_connection.connect();
+
+  // //let result = await register_new_user.create_new_user("John Doe", "12345aA@", "12345aA@", "D00192082@student.dkit.ie", "0899854571", database_connection);
+
+  // console.log('Example app started!');
+// });
+
+  var server = app.listen(process.env.ALWAYSDATA_HTTPD_PORT, process.env.ALWAYSDATA_HTTPD_IP, function () {
+    console.log('Example app started!');
+  });
 
 
 //WORKS ON SERVER
@@ -425,13 +450,27 @@ function send_tutorial(socket, data) {
 }
 
 function sendTutorialAcceptedNotification(socket, data) {
-  console.log("Unique")
+  console.log("Unique 2")
+  console.log(users_connected)
   console.log(data);
 
   for (let i = 0; i < users_connected.length; i++) {
-    if (users_connected[i].email === data.response.std_email) {
-      console.log("work")
-      socket.to(users_connected[i].socket_id).emit("add_tutorial_request_accepted_notification", { response: data.response });
+    if (users_connected[i].email === data.the_notification.response.std_email) {
+      console.log("work") 
+      socket.to(users_connected[i].socket_id).emit("add_tutorial_request_accepted_notification", { response: data.the_notification.response, post: data.the_post });
+    }
+  }
+}
+
+function sendAgreementRejectedNotification(socket, data) {
+  console.log("Rejected")
+  console.log(users_connected)
+  console.log(data);
+
+  for (let i = 0; i < users_connected.length; i++) {
+    if (users_connected[i].email === data.the_post.post_tutor_email) { 
+      console.log("Send rejected")
+      socket.to(users_connected[i].socket_id).emit("agreement_rejected_tutor", { response: data.the_notification.response, post: data.the_post });
     }
   }
 }
@@ -460,8 +499,12 @@ io.on('connection', function (socket) {
   });
 
   socket.on('tutorial_request_accepted', function (data) {
-    sendTutorialAcceptedNotification(socket, data)
+    sendTutorialAcceptedNotification(socket, data);
   });
+
+  socket.on('agreement_rejected', function (data) {
+    sendAgreementRejectedNotification(socket, data);
+  });  
 
   //Update the socket once a user becomes a tutor (add modules)
   socket.on('update_socket', function (data) {

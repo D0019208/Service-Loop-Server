@@ -428,7 +428,7 @@ class database {
     //We check if there is any extra information
     if (extra_information !== null) {
       //If the tags array contains the tag "Tutorial request sent, we add a post id to the notification model"
-      if (notification_tags.includes("Tutorial request sent") || notification_tags.includes("Tutorial requested") || notification_tags.includes("Tutorial request accepted") || notification_tags.includes("Tutorial agreement offered")) {
+      if (notification_tags.includes("Tutorial request sent") || notification_tags.includes("Tutorial requested") || notification_tags.includes("Tutorial request accepted") || notification_tags.includes("Tutorial agreement offered") || notification_tags.includes("Tutorial agreement accepted") || notification_tags.includes("Tutorial agreement rejected")) {
         notificationModel.post_id = extra_information.post_id;
 
         if (typeof extra_information.modules !== 'undefined') {
@@ -686,11 +686,11 @@ class database {
 
       if (!notification_response_tutor.error) {
         return new Promise((resolve, reject) => {
-          postModel.findOneAndUpdate(filter, update).then(async result => {
+          postModel.findOneAndUpdate(filter, update, { new: true }).then(async result => {
             let notification_response_student = await this.create_notification("Tutorial accepted", tutor_name + " has accepted to help you with the following tutorial '" + result.post_title + "'. The tutor will be in contact shortly.", result.std_email, ["Tutorial request accepted"], { post_id: post_id });
 
             this.disconnect();
-            resolve({ error: false, response: { tutor_notification: notification_response_tutor.response, student_notification: notification_response_student } });
+            resolve({ error: false, response: { tutor_notification: notification_response_tutor.response, student_notification: notification_response_student, post: result } });
           });
         });
       } else {
@@ -762,17 +762,17 @@ class database {
     return new Promise((resolve, reject) => {
       userModel.findOne({ user_email: email }).then((user) => {
         console.log(user)
-        resolve({certificate_path: user.user_digital_certificate_path, certificate_password: user.user_digital_certificate_password });
+        resolve({ certificate_path: user.user_digital_certificate_path, certificate_password: user.user_digital_certificate_password });
       });
     });
   }
 
-  update_post_agreement_status(post_id) {
+  update_post_agreement_status(post_id, update_object) {
     console.log(post_id);
     const postModel = require('../models/post');
 
     const filter = { _id: post_id };
-    const update = { post_agreement_offered: true };
+    const update = update_object;
 
     return new Promise((resolve, reject) => {
       postModel.findOneAndUpdate(filter, update).then(result => {
@@ -782,15 +782,32 @@ class database {
     });
   }
 
-  update_post_agreement_url(post_id, agreement_url, tutor_signature_data) { 
+  update_post_agreement_url(post_id, agreement_url, tutor_signature_data) {
     const postModel = require('../models/post');
 
     const filter = { _id: post_id };
     const update = { post_agreement_url: agreement_url, tutor_signature: tutor_signature_data };
 
     return new Promise((resolve, reject) => {
-      postModel.findOneAndUpdate(filter, update).then(result => { 
+      postModel.findOneAndUpdate(filter, update).then(result => {
         resolve(result);
+      })
+    });
+  }
+
+  reject_agreement(post_id) {
+    const postModel = require('../models/post');
+    const fs = require('fs');
+    
+    const filter = { _id: post_id };
+    const update = { post_agreement_url: "", tutor_signature: "", post_agreement_offered: false };
+
+    return new Promise((resolve, reject) => {
+      postModel.findOneAndUpdate(filter, update).then(async (result) => {
+        fs.unlinkSync('./resources/pdfs/agreement_' + post_id + '_signed.pdf');
+        let student_notification = await this.create_notification("Agreement rejected", "You have successfully rejected the agreement for the tutorial, '" + result.post_title + "'. Please get in contact with your tutor, '" + result.post_tutor_name + "' via email at '" + result.post_tutor_email + "' to arrange a new agreement.", result.std_email, ["Tutorial agreement rejected"], { post_id: post_id });
+        let tutor_notification = await this.create_notification("Agreement rejected", "The student, '" + result.std_name + "' has rejected the agreement for the tutorial, '" + result.post_title + "'. Please get in contact with him/her, via email at '" + result.std_email + "' to arrange a new agreement.", result.post_tutor_email, ["Tutorial agreement rejected"], { post_id: post_id });
+        resolve({error: false, response: "Tutorial rejected successfully.", updated_tutorial: result, student_notification: student_notification, tutor_notification: tutor_notification});
       })
     });
   }

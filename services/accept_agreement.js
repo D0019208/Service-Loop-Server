@@ -1,4 +1,13 @@
-function create_agreement_pdf(post_id, tutor_email, tutor_name, tutorial_date, tutorial_time, tutorial_room, tutor_signature, student_name, student_email) {
+function create_agreement_pdf(post_id, tutor_email, tutor_name, tutorial_date, tutorial_time, tutorial_room, tutor_signature, student_signature, student_name, student_email) {
+    // console.log(post_id);
+    // console.log(tutor_email);
+    // console.log(tutor_name);
+    // console.log(tutorial_date);
+    // console.log(tutorial_time);
+    // console.log(tutorial_room); 
+    // console.log(student_name);
+    // console.log(student_email);
+    
     return new Promise((resolve, reject) => {
         const fs = require('fs');
         const PDFDocument = require('pdfkit');
@@ -108,7 +117,11 @@ function create_agreement_pdf(post_id, tutor_email, tutor_name, tutorial_date, t
             align: 'left'
         });
         doc.moveDown();
-        doc.text(" Signed: ");
+        doc.text(" Signed: " + "\n ") + doc.image(student_signature, {
+            scale: 0.30,
+            align: 'left'
+        }
+        );
         doc.rect(doc.x, 160, 500, doc.y).stroke();
         doc.moveDown();
 
@@ -175,40 +188,53 @@ function create_agreement_pdf(post_id, tutor_email, tutor_name, tutorial_date, t
     });
 }
 
-let offer_agreement = async function offer_agreement(database_connection, post_id, tutor_email, tutor_name, tutorial_date, tutorial_time, tutorial_room, tutor_signature) {
+let accept_agreement = async function accept_agreement(database_connection, post_id, student_signature) {
     const Digital_Signature = require('./Digital_Signature');
     const Email_Object = require('./send_email');
+    const fs = require('fs');
+    
     const signature_controller = new Digital_Signature(); 
 
     //Get student details this way
-    let update_post_agreement_status_response = await database_connection.update_post_agreement_status(post_id, { post_agreement_offered: true, tutorial_date: tutorial_date, tutorial_time: tutorial_time, tutorial_room: tutorial_room });
+    let update_post_agreement_status_response = await database_connection.update_post_agreement_status(post_id, { post_agreement_signed: true, post_status: "Ongoing"}); 
+
     let student_name = update_post_agreement_status_response.std_name;
     let student_email = update_post_agreement_status_response.std_email;
-
-    let digital_certificate = await database_connection.get_digital_certificate_details(tutor_email);
-    let pdf_path_and_name = await create_agreement_pdf(post_id, tutor_email, tutor_name, tutorial_date, tutorial_time, tutorial_room, tutor_signature, student_name, student_email)
-    console.log(pdf_path_and_name);
     
-    console.log(digital_certificate) 
-    let signed_pdf_path = await signature_controller.digitally_sign_pdf(pdf_path_and_name.pdf_path, {tutor: digital_certificate});
+    let tutor_name = update_post_agreement_status_response.post_tutor_name;
+    let tutor_email = update_post_agreement_status_response.post_tutor_email;
+    let tutor_signature = update_post_agreement_status_response.tutor_signature;
+
+    let tutorial_date = update_post_agreement_status_response.tutorial_date; 
+    let tutorial_time = update_post_agreement_status_response.tutorial_time; 
+    let tutorial_room = update_post_agreement_status_response.tutorial_room; 
+    
+
+    let tutor_digital_certificate = await database_connection.get_digital_certificate_details(tutor_email);
+    let student_digital_certificate = await database_connection.get_digital_certificate_details(student_email);
+
+    let pdf_path_and_name = await create_agreement_pdf(post_id, tutor_email, tutor_name, tutorial_date, tutorial_time, tutorial_room, tutor_signature, student_signature, student_name, student_email)
+    
+    let signed_pdf_path = await signature_controller.digitally_sign_pdf(pdf_path_and_name.pdf_path, {student: student_digital_certificate, tutor: tutor_digital_certificate}, true);
+    
     let update_post_agremeent_url_response = await database_connection.update_post_agreement_url(post_id, signed_pdf_path.response, tutor_signature);
     
     console.log("New PDF path")
     console.log(signed_pdf_path);
 
     //Send 2 emails
-    Email_Object.send_email({ student: { student_name: student_name, student_email: student_email, student_email_subject: 'NOREPLY - Agreement created successfully', student_email_body: "Your tutor has just created an agreement, please review it and either accept or decline it in the app." }, tutor: { tutor_name: tutor_name, tutor_email: tutor_email, tutor_email_subject: 'NOREPLY - New agreement offer from Service Loop', tutor_email_body: "Agreement creation has been successful, now wait for the student to accept or reject the agreement" }, agreement_url: signed_pdf_path.response, agreement_name: signed_pdf_path.response.substring(17) });
+    Email_Object.send_email({ student: { student_name: student_name, student_email: student_email, student_email_subject: 'NOREPLY - Agreement accepted successfully', student_email_body: "You have successfully accepted the agreement for the '" + update_post_agreement_status_response.post_title + "' tutorial. Your tutorial is scheduled for " + tutorial_date + " at " +  tutorial_time + " in room " + tutorial_room + "."}, tutor: { tutor_name: tutor_name, tutor_email: tutor_email, tutor_email_subject: 'NOREPLY - Agreement accepted successfully', tutor_email_body: "The student " + student_name + " has accepted your offered agreement for the '" + update_post_agreement_status_response.post_title + "' tutorial. The tutorial is scheduled for " + tutorial_date + " at " +  tutorial_time + " in room " + tutorial_room + "." }, agreement_url: signed_pdf_path.response, agreement_name: signed_pdf_path.response.substring(17) });
 
     //Create 2 notifications
     //SEND VIA WEBSOCKET!!!!!!
-    let notification_response_tutor = await database_connection.create_notification("Agreement created successfully", "You have successfully created an agreement for the tutorial '" + update_post_agremeent_url_response.post_title + "'. Please wait for " + update_post_agremeent_url_response.std_name + " to accept or reject the agreement to proceed with the tutorial. Click the button below to see the agreement.", tutor_email, ["Tutorial agreement offered"], { post_id: post_id, post_modules: update_post_agreement_status_response.post_modules });
-    let notification_response_student = await database_connection.create_notification("New agreement for the '" + update_post_agremeent_url_response.post_title + "' tutorial", update_post_agremeent_url_response.post_tutor_name + " has created an agreement for the '" + update_post_agremeent_url_response.post_title + "' tutorial. Please view this agreement in context by clicking the button below and either accept or reject the agreement to proceed with the process.", student_email, ["Tutorial agreement offered"], { post_id: post_id, post_modules: update_post_agreement_status_response.post_modules });
+    let notification_response_tutor = await database_connection.create_notification("Agreement accepted", "The student '" + update_post_agremeent_url_response.std_name + "' has accepted your agreement for the '" + update_post_agremeent_url_response.post_title + "' tutorial. You can view the agreement by clicking the button below. Your tutorial is scheduled for " + tutorial_date + " at " +  tutorial_time + " in room " + tutorial_room + ".", tutor_email, ["Tutorial agreement accepted"], { post_id: post_id });
+    let notification_response_student = await database_connection.create_notification("Agreement accepted", "You have accepted the agreement offered by your tutor '" + update_post_agremeent_url_response.post_tutor_name + "'. Please note that the tutorial is scheduled for " + tutorial_date + " at " +  tutorial_time + " in room " + tutorial_room + ". You can view the agreement by clicking the button below.", student_email, ["Tutorial agreement accepted"], { post_id: post_id });
     database_connection.disconnect();
 
     return {error: false, response: "Agreement sent successfully", updated_tutorial: update_post_agremeent_url_response, tutor_notification: notification_response_tutor, student_notification: notification_response_student};
 }
 
-exports.offer_agreement = offer_agreement;
+exports.accept_agreement = accept_agreement;
 
 
 
