@@ -36,6 +36,15 @@ const UserSchema = new mongoose.Schema({
   user_digital_certificate_password:
   {
     type: String
+  },
+  user_blockchain_api_token: {
+    type: String
+  },
+  user_blockchain_id: {
+    type: String
+  },
+  user_blockchain_identity_name: {
+    type: String
   }
 });
 

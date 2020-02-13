@@ -6,63 +6,28 @@ class Digitally_Sign {
     constructor() {
     }
 
-    /**
-     * This function creates a PDF from the content given and then
-     * appending the each parties signature and creating an audit trail
-     * afterwards.
-     * 
-     * @param {This is the name of the PDF E.G. 'contract.pdf'} pdf_name 
-     * @param {This is the text content of the PDF} pdf_content 
-     * @param {This is the signature of party1} party1_signature
-     * @param {This is the signature of party2} party2_signature
-     */
-    create_pdf(pdf_name, pdf_content, party1_signature, party2_signature) {
-        return new Promise((resolve, reject) => {
-            const PDFDocument = require('pdfkit');
-            // Create a document
-            const doc = new PDFDocument();
-
-            // // Embed a font, set the font size, and render some text
-            // doc.font('fonts/PalatinoBold.ttf')
-            //   .fontSize(25)
-            //   .text('Some text with an embedded font!', 100, 100);
-
-            // // Add an image, constrain it to a given size, and center it vertically and horizontally
-            // doc.image('path/to/image.png', {
-            //   fit: [250, 300],
-            //   align: 'center',
-            //   valign: 'center'
-            // });
-
-            // Add another page
-            doc.fontSize(13).text(pdf_content, 100, 100);
-
-            doc.end();
-
-            // Pipe its output somewhere, like to a file or HTTP response
-            // See below for browser usage
-            //Maybe put on top for better PERFORMANCE
-            let writeStream = doc.pipe(fs.createWriteStream('./resources/pdfs/' + pdf_name + '.pdf'));
-
-            writeStream.on('error', function (err) {
-                if (err.code === 'ENOENT') {
-                    reject("File creation failed!");
-                } else {
-                    reject("An unexpected error has occured when creating files!");
-                }
-            });
-
-            writeStream.on('finish', function () {
-                resolve("resources/pdfs/" + pdf_name);
-            });
-        });
-
-    }
-
+    //"java -jar /home/d00192082/ServiceLoopServer/resources/java/JSignPdf.jar /home/d00192082/ServiceLoopServer/resources/pdfs/agreement_5e428eff1700d139c09167d2.pdf -v --visible-signature -d /home/d00192082/ServiceLoopServer/resources/pdfs -a --bg-path /home/d00192082/ServiceLoopServer/resources/images/adobe_watersign.png -page 1000 -kst PKCS12 -ksf /home/d00192082/ServiceLoopServer/ssl/client_5e41bc1b78c9ad2fa0dadac7.p12 -ksp pycnaMLBLp"
     async digitally_sign_pdf(pdf_path, digital_certificate, append_signature = false) {
+        const path = require('path');
+        let base_path = path.join(__dirname, '../');
+        //let base_path = '/';
+
+        let digitally_sign_pdf_once_command = `java -jar ${base_path}resources/java/JSignPdf.jar ${base_path + pdf_path} -v --visible-signature -d ${base_path}resources/pdfs -a --bg-path ${base_path}resources/images/adobe_watersign.png -page 1000 -kst PKCS12 -ksf ${base_path + digital_certificate.tutor.certificate_path} -ksp ${digital_certificate.tutor.certificate_password} 2>&1`;
+        let digitally_sign_pdf_twice_command;
+
+        if (append_signature) {
+            digitally_sign_pdf_twice_command = `java -jar ${base_path}resources/java/JSignPdf.jar ${base_path + pdf_path.substring(0, pdf_path.length - 4) + '_signed.pdf'} -v --visible-signature -d ${base_path}resources/pdfs -llx 612 -lly 0 -urx 500 -ury 100 -a --append --bg-path ${base_path}resources/images/adobe_watersign.png -page 1000 -kst PKCS12 -ksf ${base_path + digital_certificate.student.certificate_path} -ksp ${digital_certificate.student.certificate_password} 2>&1`;
+        }
+        
+        //return base_path;
         return new Promise((resolve, reject) => {
+            //works
+            //`java -jar /home/d00192082/ServiceLoopServer/resources/java/JSignPdf.jar /home/d00192082/ServiceLoopServer/resources/pdfs/agreement_5e428eff1700d139c09167d2.pdf -v --visible-signature -d /home/d00192082/ServiceLoopServer/resources/pdfs -a --bg-path /home/d00192082/ServiceLoopServer/resources/images/adobe_watersign.png -page 1000 -kst PKCS12 -ksf /home/d00192082/ServiceLoopServer/ssl/client_5e41bc1b78c9ad2fa0dadac7.p12 -ksp pycnaMLBLp 2>&1`
+
+
+            //resolve(`java -jar ${base_path}resources/java/JSignPdf.jar ${base_path + pdf_path} -v --visible-signature -d ${base_path}resources/pdfs -a --bg-path ${base_path}resources/images/adobe_watersign.png -page 1000 -kst PKCS12 -ksf ${base_path + digital_certificate.tutor.certificate_path} -ksp ${digital_certificate.tutor.certificate_password}`);
             if (!append_signature) {
-                exec('java -jar "resources/java/JSignPdf.jar" "' + pdf_path + '" -v --visible-signature -d resources/pdfs -a --bg-path "resources/images/adobe_watersign.png" -page 1000 -kst PKCS12 -ksf "' + digital_certificate.tutor.certificate_path + '" -ksp ' + digital_certificate.tutor.certificate_password + ' 2>&1',
+                exec(digitally_sign_pdf_once_command,
                     (error, stdout, stderr) => {
                         //On error, delete the PDFs, on success, sign second user
                         if (error !== null) {
@@ -73,17 +38,17 @@ class Digitally_Sign {
                             console.groupEnd();
 
                             //Delete PDF
-                            fs.unlinkSync(pdf_path);
+                            //fs.unlinkSync(base_path + pdf_path.substring(0, pdf_path.length - 4) + '_signed.pdf');
 
                             //Return error
-                            resolve({ error: true, response: "Failed to create PDF, please try again." });
+                            resolve({ error: true, response: error });
                         } else {
-                            fs.unlinkSync(pdf_path);
+                            //fs.unlinkSync(pdf_path);
                             resolve({ error: false, response: pdf_path.replace(/(\.[\w\d_-]+)$/i, '_signed$1') });
                         }
                     });
             } else {
-                exec('java -jar "resources/java/JSignPdf.jar" "' + pdf_path + '" -v --visible-signature -d resources/pdfs -a --bg-path "resources/images/adobe_watersign.png" -page 1000 -kst PKCS12 -ksf "' + digital_certificate.tutor.certificate_path + '" -ksp ' + digital_certificate.tutor.certificate_password + ' 2>&1',
+                exec(digitally_sign_pdf_once_command,
                     (error, stdout, stderr) => {
                         //On error, delete the PDFs, on success, sign second user
                         if (error !== null) {
@@ -94,16 +59,16 @@ class Digitally_Sign {
                             console.groupEnd();
 
                             //Delete PDF
-                            fs.unlinkSync(pdf_path);
+                            fs.unlinkSync(base_path + pdf_path.substring(0, pdf_path.length - 4) + '_signed.pdf');
 
                             //Return error
-                            resolve({error: true, response: "Failed to create PDF, please try again."})
+                            resolve({ error: true, position: "First", response: stdout })
                         } else {
-                            //Delete the original PDF
-                            fs.unlinkSync(pdf_path);
+                            //Delete the original PDF 
+                            fs.unlinkSync(base_path + pdf_path);
 
                             //Digitally Sign for second user
-                            exec('java -jar "resources/java/JSignPdf.jar" "' + pdf_path.substring(0, pdf_path.length - 4) + '_signed.pdf" -v --visible-signature -d resources/pdfs -llx 612 -lly 0 -urx 500 -ury 100 -a --append --bg-path "resources/images/adobe_watersign.png" -page 1000 -kst PKCS12 -ksf "' + digital_certificate.student.certificate_path + '" -ksp ' + digital_certificate.student.certificate_password + ' 2>&1',
+                            exec(digitally_sign_pdf_twice_command,
                                 (error, stdout, stderr) => {
                                     //On error, delete the PDFs, on success, delete the old PDF
                                     if (error !== null) {
@@ -114,22 +79,22 @@ class Digitally_Sign {
                                         console.groupEnd();
 
                                         //Delete PDF
-                                        fs.unlinkSync(pdf_path.substring(0, pdf_path.length - 4) + "_signed.pdf");
-                                        fs.unlinkSync(pdf_path.substring(0, pdf_path.length - 4) + "_signed_signed.pdf");
+                                        fs.unlinkSync(base_path + pdf_path.substring(0, pdf_path.length - 4) + '_signed.pdf');
+                                        fs.unlinkSync(base_path + pdf_path.substring(0, pdf_path.length - 4) + '_signed_signed.pdf');
 
                                         //Return error
-                                        resolve({error: true, response: "Failed to create PDF, please try again."})
+                                        resolve({ error: "true", position: "Second", response: stdout })
                                     } else {
-                                        fs.unlinkSync(pdf_path.substring(0, pdf_path.length - 4) + "_signed.pdf");
+                                        fs.unlinkSync(base_path + pdf_path.substring(0, pdf_path.length - 4) + "_signed.pdf");
 
                                         //Rename the file from John_Doe_and_Jane_Doe_contract_signed_signed.pdf to just
-                                        //John_Doe_and_Jane_Doe_contract_signed.pdf
+                                        //John_Doe_and_Jane_Doe_contract_signed_final.pdf
                                         console.log(pdf_path.substring(0, pdf_path.length - 4))
-                                        fs.rename(pdf_path.substring(0, pdf_path.length - 4) + "_signed_signed.pdf", pdf_path.substring(0, pdf_path.length - 4) + "_signed_final.pdf", (err) => {
+                                        fs.rename(base_path + pdf_path.substring(0, pdf_path.length - 4) + "_signed_signed.pdf", base_path + pdf_path.substring(0, pdf_path.length - 4) + "_signed_final.pdf", (err) => {
                                             if (err) {
-                                                resolve({error: true, response: err})
+                                                resolve({ error: true, response: err })
                                             } else {
-                                                resolve({error: false, response: pdf_path.substring(0, pdf_path.length - 4) + "_signed_final.pdf"});
+                                                resolve({ error: false, response: pdf_path.substring(0, pdf_path.length - 4) + "_signed_final.pdf" });
                                             }
                                         });
                                     }
@@ -140,81 +105,116 @@ class Digitally_Sign {
         });
     }
 
-    /**
-     * This is the function that will be called to create and sign a PDF.
-     * It first goes to the create_pdf() function where it creates a PDF
-     * based on the contents provided and then digitally signs that PDF.
-     * 
-     * @param {This is the name of the PDF E.G. 'contract.pdf'} pdf_name - 
-     * @param {This is the text content of the PDF} pdf_content 
-     * @param {This is the signature of party1} party1_signature
-     * @param {This is the signature of party2} party2_signature
-     */
-    async create_digitally_signed_pdf(pdf_name, pdf_content, party1_signature, party2_signature) {
-        let pdf_path;
-        //Create the PDF and get its path
-        try {
-            pdf_path = await this.create_pdf(pdf_name, pdf_content, party1_signature, party2_signature);
-        } catch (err) {
-            return err;
-        }
+    async verify_digital_signature(pdf, digital_certificate) {
+        //2>&1 <--- Add to command MAYBE
+        let compromised_agreements = [{ pdf: "test.pdf", party_1_digital_certificate: { digital_certificate: "", digital_certificate_password: "" }, party_2_digital_certificate: { digital_certificate: "", digital_certificate_password: "" } }];
+        const path = require('path');
+        //let base_path = path.join(__dirname, '../');
+        let base_path = '';
+
+        let check_one_digital_signature_command = `java -jar ${base_path}resources/java/Verifier.jar ${base_path + pdf} -kf ${base_path + digital_certificate.user_digital_certificate_path} -kp ${digital_certificate.user_digital_certificate_password} -kt PKCS12`;
 
         return new Promise((resolve, reject) => {
-            //Check to see that PDF has been created 
-            //Digitally Sign for first user (Must add image of signature later perhaps) e.g. resources/pdfs/testPDF.pdf
-            exec('java -jar "resources/java/JSignPdf.jar" "' + pdf_path + '.pdf" -v --visible-signature -d resources/pdfs -a --bg-path "resources/images/adobe_watersign.png" -page 1000 -kst PKCS12 -ksf "resources/keystore_files/test.p12" -ksp test 2>&1',
+            exec(check_one_digital_signature_command,
                 (error, stdout, stderr) => {
-                    //On error, delete the PDFs, on success, sign second user
                     if (error !== null) {
-                        console.groupCollapsed("Error handling 1st signing");
-                        console.log('stdout: ' + stdout);
-                        console.log('stderr: ' + stderr);
-                        console.log('exec error: ' + error);
-                        console.groupEnd();
-
-                        //Delete PDF
-                        fs.unlinkSync(pdf_path + ".pdf");
-
-                        //Return error
-                        reject("Failed to create PDF, please try again.")
-                    } else {
-                        //Delete PDF
-                        fs.unlinkSync(pdf_path + ".pdf");
-
-                        //Digitally Sign for second user (Must add image of signature later perhaps) e.g. resources/pdfs/testPDF_signed.pdf
-                        exec('java -jar "resources/java/JSignPdf.jar" "' + pdf_path + '_signed.pdf" -v --visible-signature -d resources/pdfs -llx 612 -lly 0 -urx 500 -ury 100 -a --append --bg-path "resources/images/adobe_watersign.png" -page 1000 -kst PKCS12 -ksf "resources/keystore_files/test.p12" -ksp test 2>&1',
-                            (error, stdout, stderr) => {
-                                //On error, delete the PDFs, on success, delete the old PDF
-                                if (error !== null) {
-                                    console.groupCollapsed("Error handling 2nd signing");
-                                    console.log('stdout: ' + stdout);
-                                    console.log('stderr: ' + stderr);
-                                    console.log('exec error: ' + error);
-                                    console.groupEnd();
-
-                                    //Delete PDF
-                                    fs.unlinkSync(pdf_path + "_signed.pdf");
-                                    fs.unlinkSync(pdf_path + "_signed_signed.pdf");
-
-                                    //Return error
-                                    reject("Failed to create PDF, please try again.")
-                                } else {
-                                    fs.unlinkSync(pdf_path + "_signed.pdf");
-
-                                    //Rename the file from John_Doe_and_Jane_Doe_contract_signed_signed.pdf to just
-                                    //John_Doe_and_Jane_Doe_contract_signed.pdf
-                                    fs.rename(pdf_path + "_signed_signed.pdf", pdf_path + "_signed.pdf", (err) => {
-                                        if (err) {
-                                            console.log('ERROR: ' + err);
-                                        } else {
-                                            resolve(pdf_path + "_signed.pdf");
-                                        }
-                                    });
-                                }
-                            });
+                        if (error.code !== 60) {
+                            //console.log('stdout: ' + stdout);
+                            //console.log('stderr: ' + stderr);
+                            //console.log('exec error: ' + error);
+                            compromised_pdfs.push(all_user_pdfs[i]);
+                        } else {
+                            resolve({ error: false, response: "Digital signature is valid" })
+                        }
                     }
                 });
         });
+
+
+    }
+
+    check_digital_signature_error_code(error_code) {
+        let error_message;
+
+        switch (error.code) {
+            case 10:
+                //SIG_STAT_CODE_WARNING_NO_SIGNATURE 
+                error_message = "Warning! The PDF has no signatures. Warning code 10.";
+                break;
+            case 15:
+                //SIG_STAT_CODE_WARNING_ANY_WARNING
+                error_message = "Warning! Something went wrong. Warning code 15.";
+                break;
+            case 20:
+                //SIG_STAT_CODE_WARNING_NO_REVOCATION_INFO 
+                error_message = "Warning! There is no revocation info. Warning code 20.";
+                break;
+            case 30:
+                //SIG_STAT_CODE_WARNING_TIMESTAMP_INVALID 
+                error_message = "Warning! The timestamp is invalid. Warning code 30.";
+                break;
+            case 40:
+                //SIG_STAT_CODE_WARNING_NO_TIMESTAMP_TOKEN 
+                error_message = "Warning! There is no timestamp token. Warning code 40.";
+                break;
+            case 50:
+                //SIG_STAT_CODE_WARNING_SIGNATURE_OCSP_INVALID
+                error_message = "Warning! The Signature OCSP is invalid. Warning code 50.";
+                break;
+            case 60:
+                //SIG_STAT_CODE_WARNING_CERTIFICATE_CANT_BE_VERIFIED
+                error_message = "Warning! Your certificate can't be verified. Warning code 60.";
+                break;
+            case 61:
+                //SIG_STAT_CODE_WARNING_CERTIFICATE_EXPIRED
+                error_message = "Warning! Your certificate has expired. Warning code 61.";
+                break;
+            case 62:
+                //SIG_STAT_CODE_WARNING_CERTIFICATE_NOT_YET_VALID
+                error_message = "Warning! Your certificate is not yet valid. Warning code 62.";
+                break;
+            case 63:
+                //SIG_STAT_CODE_WARNING_CERTIFICATE_REVOKED
+                error_message = "Warning! Your certificate has been revoked. Warning code 63.";
+                break;
+            case 64:
+                //SIG_STAT_CODE_WARNING_CERTIFICATE_UNSUPPORTED_CRITICAL_EXTENSION
+                error_message = "Warning! Your certificate is not supported. Warning code 64.";
+                break;
+            case 65:
+                //SIG_STAT_CODE_WARNING_CERTIFICATE_INVALID_STATE
+                error_message = "Warning! Your certificate has an invalid state. Warning code 65.";
+                break;
+            case 66:
+                //SIG_STAT_CODE_WARNING_CERTIFICATE_PROBLEM
+                error_message = "Warning! There is a porblem with your certificate. Warning code 66.";
+                break;
+            case 70:
+                //SIG_STAT_CODE_WARNING_UNSIGNED_CONTENT
+                error_message = "Warning! Unsigned content was detected. Warning code 70.";
+                break;
+            case 101:
+                //SIG_STAT_CODE_ERROR_FILE_NOT_READABLE
+                error_message = "Error! The PDF is not readable. Error code 101.";
+                break;
+            case 102:
+                //SIG_STAT_CODE_ERROR_UNEXPECTED_PROBLEM
+                error_message = "Error! An unexpected error has occured, please try again. Error code 102.";
+                break;
+            case 105:
+                //SIG_STAT_CODE_ERROR_ANY_ERROR
+                error_message = "Error! An error has occured, please try again. Error code 105.";
+                break;
+            case 110:
+                //SIG_STAT_CODE_ERROR_CERTIFICATION_BROKEN 
+                error_message = "Error! Your certificate is broken. Error code 110.";
+                break;
+            case 120:
+                //SIG_STAT_CODE_ERROR_REVISION_MODIFIED
+                error_message = "Error! There has been a modification. Error code 120.";
+        }
+
+        return error_message;
     }
 
     verify_all_digital_signatures(user_name) {
