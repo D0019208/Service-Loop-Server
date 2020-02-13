@@ -103,27 +103,56 @@ node index.js
 
 ## Running the tests
 
-Explain how to run the automated tests for this system
-
-### Break down into end to end tests
-
-Explain what these tests test and why
+For automated unit testing we are using Jasmine. To run the tests automatically, run the below command.
 
 ```
-Give an example
-```
-
-### And coding style tests
-
-Explain what these tests test and why
-
-```
-Give an example
+npm test
 ```
 
 ## Deployment
 
-Add additional notes about how to deploy this on a live system
+To deploy the server to the live enviornment follow the below steps:
+
+1.) In the 'index.js' file, we need to change to what port and IP address does the express server listen to. 
+
+Change this:
+```
+var server = app.listen(3001, async function () {
+  console.log('App started!');
+
+  Live_Updates_Controller = new Live_Updates(server, app);
+  Live_Updates_Controller.connect();
+});
+```
+
+To this:
+```
+var server = app.listen(process.env.ALWAYSDATA_HTTPD_PORT, process.env.ALWAYSDATA_HTTPD_IP, async function () {
+  console.log('App started!');
+
+  Live_Updates_Controller = new Live_Updates(server, app);
+  Live_Updates_Controller.connect();
+});
+```
+
+2.) In the 'services' folder, find the 'Live_Updates.js' file, change the way we connect to the websocket.
+
+Change this:
+```
+server = require('http').Server(app);
+this.socket = require('socket.io')(server); 
+server.listen(80);
+
+```
+
+To this:
+```
+this.socket = require('socket.io').listen(server);
+this.socket.set("origins", "*:*");
+
+```
+
+If we do not change this then your application on the live server will not be able to access the websocket as our host (alwaysdata.nety
 
 ## Built With
 
