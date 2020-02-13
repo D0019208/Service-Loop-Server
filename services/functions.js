@@ -16,8 +16,8 @@ let send_email_with_agreement = function send_email_with_agreement(email_object)
         port: 465,
         secure: true,
         auth: {
-            user: 'nikito888',
-            pass: '3820065Np2!'
+            user: '',
+            pass: ''
         }
     });
 
