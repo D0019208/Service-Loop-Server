@@ -95,11 +95,36 @@ server.listen(80);
 
 If we do not change this then your application on localhost will not be able to access the websocket for as of yet an unknown reason.
 
-7.) And finally, launch the server!
+6.) In the 'services' folder, find 'functions.js' and change the login credentials
 
+Change this:
+```
+host: 'smtp.sendgrid.net',
+        port: 465,
+        secure: true,
+        auth: {
+            user: '',
+            pass: ''
+        }
+```
+
+To this:
+```
+host: 'smtp.gmail.com',
+        port: 465,
+        secure: true,
+        auth: {
+            user: YOUR GMAIL,
+            pass: YOU GMAIL PASSWORD
+        }
+```
+
+7.) And finally, launch the server!
 ```
 node index.js
 ```
+
+
 
 ## Running the tests
 
@@ -152,7 +177,11 @@ this.socket.set("origins", "*:*");
 
 ```
 
-If we do not change this then your application on the live server will not be able to access the websocket as our host (alwaysdata.nety
+If we do not change this then your application on the live server will not be able to access the websocket as our host (alwaysdata.net) does not allow for port 80 to be used.
+
+3.) In the 'services' folder, find the 'functions.js' file, change the smtp details to our sendgrid details.
+
+4.) Upload the server WITHOUT the node_modules to the server
 
 ## Built With
 
