@@ -11,9 +11,9 @@ These instructions will get you a copy of the project up and running on your loc
 What things you need to install the software and how to install them
 
 ```
-npm
-NodeJS
-Windows-Build-Tools (Optional if not getting 'gyp ERR!' when installing the modules)
+1.) npm
+2.) NodeJS
+3.) Windows-Build-Tools (Optional if not getting 'gyp ERR!' when installing the node_modules)
 ```
 
 ### Installing
@@ -58,13 +58,48 @@ form: {app_key: this.app_key, phone: mobile, api_key: this.api_key, code: data.c
 
 The reason for doing this is that module being used to implement the SMS verification code functionality has an error where when trying to verify a code, the module sets the code to undefined
 
-And repeat
+5.) In the 'index.js' file, we need to change to what port and IP address does the express server listen to. 
+
+Change this:
+```
+var server = app.listen(process.env.ALWAYSDATA_HTTPD_PORT, process.env.ALWAYSDATA_HTTPD_IP, async function () {
+  console.log('App started!');
+
+  Live_Updates_Controller = new Live_Updates(server, app);
+  Live_Updates_Controller.connect();
+});
+```
+To this:
+```
+var server = app.listen(3001, async function () {
+  console.log('App started!');
+
+  Live_Updates_Controller = new Live_Updates(server, app);
+  Live_Updates_Controller.connect();
+});
+```
+
+6.) In the 'services' folder of the cloned repository, find the 'Live_Updates.js' file, change the way we connect to the websocket.
+
+Change this:
+```
+this.socket = require('socket.io').listen(server);
+this.socket.set("origins", "*:*");
+```
+To this:
+```
+server = require('http').Server(app);
+this.socket = require('socket.io')(server); 
+server.listen(80);
+```
+
+If we do not change this then your application on localhost will not be able to access the websocket for as of yet an unknown reason.
+
+7.) And finally, launch the server!
 
 ```
-until finished
+node index.js
 ```
-
-End with an example of getting some data out of the system or using it for a little demo
 
 ## Running the tests
 
