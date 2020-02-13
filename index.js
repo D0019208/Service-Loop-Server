@@ -1,7 +1,9 @@
-const express = require('express')
-const cors = require('cors')
+const express = require('express');
+const cors = require('cors');
+const Live_Updates = require('./services/Live_Updates');
 const app = express();
-var users_connected = [];
+
+var Live_Updates_Controller; 
 
 //const xssFilters = require('xss-filters');
 
@@ -12,6 +14,8 @@ function back_to_main_thread(res, pdf_path) {
   res.json(pdf_path);
 }
 
+
+//MOVE TO functions.js
 function arrayContainsSameValues(arr, arr2) {
   return arr.every(i => arr2.includes(i));
 }
@@ -184,6 +188,8 @@ app.post('/register', async (req, res) => {
   return;
 });
 
+//Need the forward slash...
+//"java -jar /home/d00192082/ServiceLoopServer/resources/java/JSignPdf.jar /home/d00192082/ServiceLoopServer/resources/pdfs/agreement_5e428eff1700d139c09167d2.pdf -v --visible-signature -d /home/d00192082/ServiceLoopServer/resources/pdfs -a --bg-path /home/d00192082/ServiceLoopServer/resources/images/adobe_watersign.png -page 1000 -kst PKCS12 -ksf /home/d00192082/ServiceLoopServer/ssl/client_5e41bc1b78c9ad2fa0dadac7.p12 -ksp pycnaMLBLp 2>&1"
 app.post('/appply_to_be_tutor', async (req, res) => {
   try {
     let database = require('./services/database')
@@ -322,7 +328,7 @@ app.post('/offer_agreement', async (req, res) => {
   const database_connection = new database("Tutum_Nichita", "EajHKuViBCaL62Sj", "service_loop");
   let db_con_response = await database_connection.connect();
 
-  res.json(await offer_agreement.offer_agreement(database_connection, req.body.tutorial_id, req.body.email, req.body.name, req.body.tutorial_date.substring(0, 10), req.body.tutorial_time, req.body.tutorial_room, req.body.tutor_signature));
+  res.json(await offer_agreement.offer_agreement(database_connection, req.body.tutorial_id, req.body.tutorial_date.substring(0, 10), req.body.tutorial_time, req.body.tutorial_room, req.body.tutor_signature));
   return;
 });
 
@@ -350,179 +356,16 @@ app.post('/reject_agreement', async (req, res) => {
   return;
 });
 
-// try this
-
-// this is function on soket.js
-
-// io.on("sessreload",function(sid){
-// //some code
-// });
-// this is call this function
-
-// io.sockets._events.sessreload(sid);
-
-
-// (async () => {
-//   let database = require('./services/database')
-
-//   const validator = require('validator');
-//   let tutor_email = validator.escape("D00192082@student.dkit.ie");
-//   let tutor_skills = ["PHP", "JavaScript"];
-
-//   const database_connection = new database("Tutum_Nichita", "EajHKuViBCaL62Sj", "service_loop");
-//   let db_con_response = await database_connection.connect();
-
-//   let response = await database_connection.elevate_user_to_tutor(tutor_email, tutor_skills);
-//   console.log(response);
-//   return;
-// })();
-
 // var server = app.listen(3001, async function () {
-  // const register_new_user = require('./services/registration/register');
-  // const validator = require('validator');
-  // const database = require('./services/database');
+//   console.log('App started!');
 
-  // //const database_connection = new database("Tutum_Nichita", "EajHKuViBCaL62Sj", "service_loop");
-  // //let db_con_response = await database_connection.connect();
-
-  // //let result = await register_new_user.create_new_user("John Doe", "12345aA@", "12345aA@", "D00192082@student.dkit.ie", "0899854571", database_connection);
-
-  // console.log('Example app started!');
+//   Live_Updates_Controller = new Live_Updates(server, app);
+//   Live_Updates_Controller.connect();
 // });
 
-  var server = app.listen(process.env.ALWAYSDATA_HTTPD_PORT, process.env.ALWAYSDATA_HTTPD_IP, function () {
-    console.log('Example app started!');
-  });
+var server = app.listen(process.env.ALWAYSDATA_HTTPD_PORT, process.env.ALWAYSDATA_HTTPD_IP, async function () {
+  console.log('App started!');
 
-
-//WORKS ON SERVER
-//var io = require('socket.io').listen(server);
-
-//WORKS ON LOCALHOST
-var server = require('http').Server(app);
-var io = require('socket.io')(server);
-
-server.listen(80);
-
-// WARNING: app.listen(80) will NOT work here!
-
-function send_notification(socket, data) {
-  let elegible_users = [];
-  console.log(data);
-  for (let i = 0; i < users_connected.length; i++) {
-    //some(..) checks each element of the array against a test function and returns true if any element of the array passes the test function, otherwise, it returns false. 
-    //indexOf(..) >= 0 and includes(..) both return true if the given argument is present in the array.
-    console.log(users_connected[i].modules);
-
-    for (let j = 0; j < users_connected[i].modules.length; j++) {
-      if (users_connected[i].modules[j] === data.notification_modules[0]) {
-        elegible_users.push(users_connected[i]);
-      }
-    }
-  }
-
-  console.log("Elegible users");
-  console.log(elegible_users);
-
-  for (let i = 0; i < elegible_users.length; i++) {
-    //socket.emit('news', { hello: elegible_users, socket_id: elegible_users[i].socket_id });
-    socket.to(elegible_users[i].socket_id).emit("new_notification", { response: data });
-  }
-
-  //socket.emit('news', { hello: elegible_users });
-}
-
-function send_tutorial(socket, data) {
-  let elegible_users = [];
-  console.log(data);
-  for (let i = 0; i < users_connected.length; i++) {
-    for (let j = 0; j < users_connected[i].modules.length; j++) {
-      if (users_connected[i].modules[j] === data.response[0].post_modules[0]) {
-        elegible_users.push(users_connected[i]);
-      }
-    }
-  }
-
-  for (let i = 0; i < elegible_users.length; i++) {
-    //socket.emit('news', { hello: elegible_users, socket_id: elegible_users[i].socket_id });
-    socket.to(elegible_users[i].socket_id).emit("new_tutorial_request", { response: data.response[0] });
-  }
-}
-
-function sendTutorialAcceptedNotification(socket, data) {
-  console.log("Unique 2")
-  console.log(users_connected)
-  console.log(data);
-
-  for (let i = 0; i < users_connected.length; i++) {
-    if (users_connected[i].email === data.the_notification.response.std_email) {
-      console.log("work") 
-      socket.to(users_connected[i].socket_id).emit("add_tutorial_request_accepted_notification", { response: data.the_notification.response, post: data.the_post });
-    }
-  }
-}
-
-function sendAgreementRejectedNotification(socket, data) {
-  console.log("Rejected")
-  console.log(users_connected)
-  console.log(data);
-
-  for (let i = 0; i < users_connected.length; i++) {
-    if (users_connected[i].email === data.the_post.post_tutor_email) { 
-      console.log("Send rejected")
-      socket.to(users_connected[i].socket_id).emit("agreement_rejected_tutor", { response: data.the_notification.response, post: data.the_post });
-    }
-  }
-}
-
-io.on('connection', function (socket) {
-  if (!users_connected.filter(function (e) { return e.email === socket.handshake.query.email; }).length > 0) {
-    users_connected.push({ socket_id: socket.id, email: socket.handshake.query.email, modules: JSON.parse(socket.handshake.query.modules) });
-  } else {
-
-    for (let i = 0; i < users_connected.length; i++) {
-      if (socket.handshake.query.email === users_connected[i].email) {
-        users_connected[i].socket_id = socket.id;
-        users_connected[i].modules = JSON.parse(socket.handshake.query.modules);
-      }
-    }
-  }
-
-  socket.emit('news', { hello: 'connected', users: users_connected });
-
-  socket.on('send_notification', function (data) {
-    send_notification(socket, data)
-  });
-
-  socket.on('new_tutorial', function (data) {
-    send_tutorial(socket, data)
-  });
-
-  socket.on('tutorial_request_accepted', function (data) {
-    sendTutorialAcceptedNotification(socket, data);
-  });
-
-  socket.on('agreement_rejected', function (data) {
-    sendAgreementRejectedNotification(socket, data);
-  });  
-
-  //Update the socket once a user becomes a tutor (add modules)
-  socket.on('update_socket', function (data) {
-    for (let i = 0; i < users_connected.length; i++) {
-      if (users_connected[i].email === data.user_email) {
-        users_connected[i].modules = data.user_modules;
-      }
-    }
-  });
-
-  // socket.on('disconnect', (reason) => {
-  //   socket.emit('news', { hello: reason});
-
-  //   for(let i = 0; i < users_connected.length; i++) {
-  //     if(users_connected[i])
-  //   }
-  //   if (users_connected.filter(function (e) { return e.email === socket.handshake.query.email; }).length > 0) {
-  //     users_connected.remove('seven');
-  //   } 
-  // });
+  Live_Updates_Controller = new Live_Updates(server, app);
+  Live_Updates_Controller.connect();
 });

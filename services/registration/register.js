@@ -10,12 +10,12 @@
  * @param {String} users_password - This is the users password e.g. "12345aA@"
  * @param {String} users_password_confirm - This is the users password confirmation, it must match to the users_password e.g. "12345aA@"
  * @param {String} users_email - This is the users email address, it must be a valid email format e.g. "JohnWick@gmail.com"
- * @param {Stringr} users_phone_number - This is the phone number of the user, it must be a valid Irish phone number e.g. "08436752562"
+ * @param {String} users_phone_number - This is the phone number of the user, it must be a valid Irish phone number e.g. "08436752562"
  * 
  * @returns {Promise} This Promise will contain an object that contains 2 keys: error and response, the "error" key will be a boolean 
  * that specifies wether the registration was successful or not and the "response" key will be a String that contains the response from the function
  */
-let create_new_user = async function create_new_user(users_full_name, users_password, users_password_confirm, users_email, users_phone_number, database_connection) { 
+let create_new_user = async function create_new_user(users_full_name, users_password, users_password_confirm, users_email, users_phone_number, database_connection) {
     /**
      * This is the function that will hash the users plaintext password
      *  
@@ -25,7 +25,7 @@ let create_new_user = async function create_new_user(users_full_name, users_pass
      * that specifies wether the registration was successful or not and the "response" key will be a String that contains the hashed password from the function
      */
     const users_password_hash = (users_password) => {
-        return {error: false, response: "12345aA@", type: "password_hash"};
+        return { error: false, response: "12345aA@", type: "password_hash" };
 
         return new Promise((resolve, reject) => {
             const bcrypt = require('bcrypt');
@@ -58,7 +58,7 @@ let create_new_user = async function create_new_user(users_full_name, users_pass
             let response = await database_connection.register_new_user(users_full_name, users_email, users_phone_number);
 
             if (response.error) {
-                console.log(err); 
+                console.log(err);
                 resolve({ error: true, response: err });
             } else {
                 console.log("Success")
@@ -78,7 +78,7 @@ let create_new_user = async function create_new_user(users_full_name, users_pass
      * that specifies wether the registration was successful or not and the "response" key will be a String that contains the response from the function
      */
     const p12_certificate_response = (database_connection, users_full_name, users_email) => {
-        return new Promise(async (resolve, reject) => { 
+        return new Promise(async (resolve, reject) => {
             const create_p12_certificate = require('./create_p12_certificate');
             const generator = require('generate-password');
 
@@ -93,15 +93,15 @@ let create_new_user = async function create_new_user(users_full_name, users_pass
                 let find_user_id_results = await database_connection.find_id_by_email(users_email);
 
                 //If an error happens when we try to get the user from the database, we close the connection and return an error
-                if (find_user_id_results.error) { 
+                if (find_user_id_results.error) {
                     resolve({ error: true, response: find_user_id_results.response });
                 } else {
                     //If the function could not find a user, we again, disconnect and return an error
-                    if (find_user_id_results.response === "No user found!") { 
+                    if (find_user_id_results.response === "No user found!") {
                         resolve({ error: true, response: find_user_id_results.response });
                     } else {
                         //We get the users ID from the returned User
-                        let user_id = find_user_id_results.response._id; 
+                        let user_id = find_user_id_results.response._id;
                         //Consider looking into wtf is a serial number
                         //We then create a digital certificate using the user id as the identifier, the randomly generate password as the cert password
                         let response = await create_p12_certificate.create_user_certificate(user_id, users_certificate_password, users_email, users_full_name);
@@ -109,15 +109,15 @@ let create_new_user = async function create_new_user(users_full_name, users_pass
                         //let response = "IDK";
                         if (response !== "Digital Certificate creation failed.") {
                             resolve({ error: false, certificate_location: response, certificate_password: users_certificate_password, type: "digital_certificate" });
-                        } else { 
+                        } else {
                             resolve({ error: true, response: response });
                         }
                     }
                 }
-             } catch (err) { 
-                 console.log(err)
-                 resolve({ error: true, response: err });
-             }
+            } catch (err) {
+                console.log(err)
+                resolve({ error: true, response: err });
+            }
         });
     }
 
@@ -141,9 +141,9 @@ let create_new_user = async function create_new_user(users_full_name, users_pass
         console.log(filtering_response)
         database_connection.disconnect();
         return filtering_response;
-    } 
+    }
 
-    try { 
+    try {
 
         //Insert the user into the database
         let user_insert_response = await insert_user_into_db(database_connection, users_full_name, users_email, users_phone_number);
@@ -155,23 +155,34 @@ let create_new_user = async function create_new_user(users_full_name, users_pass
 
             //Wait for all the Promises to execute after wich we update the user
             return Promise.all(promise_array)
-                .then(async result => { 
+                .then(async result => {
 
                     let password_hash;
                     let digital_certificate_path;
                     let digital_certificate_password;
 
-                    for(let i = 0; i < result.length; i++) {
-                        if(result[i].type === "digital_certificate") {
+                    for (let i = 0; i < result.length; i++) {
+                        if (result[i].type === "digital_certificate") {
                             digital_certificate_path = result[i].certificate_location;
                             digital_certificate_password = result[i].certificate_password;
-                        } else if(result[i].type === "password_hash") {
+                        } else if (result[i].type === "password_hash") {
                             password_hash = result[i].response;
                         }
                     }
-                    
+
                     //Update the user with the new details 
                     let update_response = await database_connection.update_new_users_details(users_email, password_hash, digital_certificate_path, digital_certificate_password);
+                    const blockchain = require('../Blockchain');
+                    const blockchain_connection = new blockchain('eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJBcGlLZXkiOiJOTkNFSkZTLVM3NjRYMUgtSkdOUlhTUC05QkVZMjZLIiwiQXBpU2VjcmV0IjoiVUYwRGhrVTNmMnQ2VHBqIiwiUGFzc3BocmFzZSI6ImZlODgxNDZhOTBkNWYwMmViNTcxYWUwMzI1YTFjZjk1IiwiaWF0IjoxNTgxNTA2MTM4fQ.bnBYyoX5oKypA2uFGK0D6oTHKz8UiYETdZ6QZDQK4-o');
+
+                    let blockchain_user_added = await blockchain_connection.add_new_identity_to_blockchain(users_full_name + " User", users_full_name, "Student");
+                    console.log(blockchain_user_added);
+                    
+                    if (!blockchain_user_added.error) {
+                        console.log("User updayted")
+                        await database_connection.update_user(users_email, { user_blockchain_api_token: blockchain_user_added.response.ApiToken, user_blockchain_id: blockchain_user_added.response.Id, user_blockchain_identity_name: blockchain_user_added.response.IdentityName });
+                    }
+
                     database_connection.disconnect();
                     return update_response;
                 })
@@ -179,7 +190,7 @@ let create_new_user = async function create_new_user(users_full_name, users_pass
                     database_connection.disconnect();
                     console.log("Promises rejected")
                     console.log(error)
-                    return {error: true, response: "error"};
+                    return { error: true, response: "error" };
                 });
         } else {
             database_connection.disconnect();

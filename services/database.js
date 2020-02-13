@@ -755,30 +755,130 @@ class database {
   }
 
   //TEST THIS
-  get_digital_certificate_details(email) {
+  get_digital_certificate_details(email) { 
     console.log(email)
     const userModel = require('../models/users');
 
     return new Promise((resolve, reject) => {
       userModel.findOne({ user_email: email }).then((user) => {
-        console.log(user)
         resolve({ certificate_path: user.user_digital_certificate_path, certificate_password: user.user_digital_certificate_password });
       });
     });
   }
 
-  update_post_agreement_status(post_id, update_object) {
+  //TEST THIS -TO BE CONTINUED...
+  // get_all_digital_certificates(email) {
+  //   const userModel = require('../models/users');
+  //   const postModel = require('../models/post');
+
+  //   let student_emails_and_pdfs = [];
+  //   let tutor_emails_and_pdfs = [];
+
+  //   let agreements_to_check = [];
+
+  //   let compromised_agreements = [{ pdf: "test.pdf", party_1_digital_certificate: { digital_certificate: "", digital_certificate_password: "" }, party_2_digital_certificate: { digital_certificate: "", digital_certificate_password: "" } }];
+
+  //   return new Promise((resolve, reject) => {
+  //     //Find all posts belonging to the user (whether he is the person requesting a tutorial or tutoring it)
+  //     postModel.find({ $or: [{ std_email: email }, { post_tutor_email: email }] }).then((posts) => {
+
+  //       //Loop through all the posts where the user participated
+  //       for (let i = 0; i < posts.length; i++) {
+  //         //Check if the post has an agreement
+  //         if (typeof posts[i].post_agreement_url !== 'undefined') {
+  //           //Add the student user and their agreement as a post will always have a user present
+  //           student_emails_and_pdfs.push({ email: posts[i].std_email, pdf: posts[i].post_agreement_url });
+  //         }
+
+  //         //Check to see if the post has a tutor before adding them to the array
+  //         if (typeof posts[i].post_tutor_email !== 'undefined') {
+  //           //Check if a post has an agreement
+  //           if (typeof posts[i].post_agreement_url !== 'undefined') {
+  //             tutor_emails_and_pdfs.push({ email: posts[i].post_tutor_email, pdf: posts[i].post_agreement_url });
+  //           }
+  //         }
+  //       }
+
+  //       console.log("student email")
+  //       console.log(student_emails_and_pdfs);
+  //       console.log("tutor email")
+  //       console.log(tutor_emails_and_pdfs)
+
+  //       let student_and_tutor_emails_and_pdfs = [...student_emails_and_pdfs, ...tutor_emails_and_pdfs];
+
+  //       console.log("Merged array")
+  //       console.log(student_and_tutor_emails_and_pdfs)
+
+  //       //Filter the array to just get the emails
+  //       let all_emails = student_and_tutor_emails_and_pdfs.map(function(x) { return x.email } );
+
+  //       //Now we need to get the digital certificates of each user
+  //       userModel.find({user_email: {$in: all_emails}}).then((users) => {
+  //         console.log("test")
+  //         console.log(users)
+
+  //         /*Loop through all the users that this particular user has an agreement with (including himself) to extract
+  //           the digital certificate information
+  //         */
+  //         for(let i = 0; i < users.length; i++) {
+  //           for(let j = 0; j < student_and_tutor_emails_and_pdfs.length; j++) {
+
+
+  //             agreements_to_check.push({pdf: student_and_tutor_emails_and_pdfs[i].pdf});
+  //           } 
+  //         }
+  //       })
+
+
+  //       //resolve({all_matching_users: users}, { certificate_path: user.user_digital_certificate_path, certificate_password: user.user_digital_certificate_password });
+  //     });
+  //   });
+  // }
+
+  //TEST THIS
+  is_room_booked(post_id, tutorial_room) {
+    console.log(post_id);
+    const postModel = require('../models/post');
+
+    const filter = { post_status: { "$in": ["In negotiation", "Ongoing"] }, tutorial_room: tutorial_room };
+
+    return new Promise((resolve, reject) => {
+      postModel.find(filter).then(result => {
+        console.log(result)
+        if (result.length) {
+          resolve(true);
+        } else {
+          resolve(false)
+        }
+      })
+    });
+  }
+
+  update_post_agreement_status(post_id, update_object, room_taken = false) {
     console.log(post_id);
     const postModel = require('../models/post');
 
     const filter = { _id: post_id };
     const update = update_object;
 
-    return new Promise((resolve, reject) => {
-      postModel.findOneAndUpdate(filter, update).then(result => {
-        console.log(result)
-        resolve(result);
-      })
+    return new Promise(async (resolve, reject) => {
+      let is_room_booked;
+
+      if(!room_taken) {
+        is_room_booked = await this.is_room_booked(post_id, update_object.tutorial_room);
+      } else {
+        is_room_booked = false;
+      }
+      
+
+      if (!is_room_booked) {
+        //resolve({error: false, response: "ddd"})
+        postModel.findOneAndUpdate(filter, update).then(result => {
+          resolve({error: false, response: result});
+        })
+      } else {
+        resolve({error: true, response: 'Room ' + update_object.tutorial_room + " is already booked, please choose another room."})
+      } 
     });
   }
 
@@ -798,17 +898,37 @@ class database {
   reject_agreement(post_id) {
     const postModel = require('../models/post');
     const fs = require('fs');
-    
+    const path = require('path');
+    let base_path = path.join(__dirname, '../');
+
     const filter = { _id: post_id };
     const update = { post_agreement_url: "", tutor_signature: "", post_agreement_offered: false };
 
     return new Promise((resolve, reject) => {
       postModel.findOneAndUpdate(filter, update).then(async (result) => {
-        fs.unlinkSync('./resources/pdfs/agreement_' + post_id + '_signed.pdf');
+        fs.unlinkSync(base_path + 'resources/pdfs/agreement_' + post_id + '_signed.pdf');
         let student_notification = await this.create_notification("Agreement rejected", "You have successfully rejected the agreement for the tutorial, '" + result.post_title + "'. Please get in contact with your tutor, '" + result.post_tutor_name + "' via email at '" + result.post_tutor_email + "' to arrange a new agreement.", result.std_email, ["Tutorial agreement rejected"], { post_id: post_id });
         let tutor_notification = await this.create_notification("Agreement rejected", "The student, '" + result.std_name + "' has rejected the agreement for the tutorial, '" + result.post_title + "'. Please get in contact with him/her, via email at '" + result.std_email + "' to arrange a new agreement.", result.post_tutor_email, ["Tutorial agreement rejected"], { post_id: post_id });
-        resolve({error: false, response: "Tutorial rejected successfully.", updated_tutorial: result, student_notification: student_notification, tutor_notification: tutor_notification});
+        resolve({ error: false, response: "Tutorial rejected successfully.", updated_tutorial: result, student_notification: student_notification, tutor_notification: tutor_notification });
       })
+    });
+  }
+
+  update_user(email, update) {
+    console.log("Test");
+    console.log(email);
+    console.log(update)
+    const userSchema = require('../models/users');
+
+    const filter = { user_email: email };
+
+    return new Promise((resolve, reject) => {
+      userSchema.findOneAndUpdate(filter, update).then(result => {
+        resolve("User updated successfully!");
+      })
+        .catch((exception) => {
+          resolve({ error: true, response: exception });
+        });
     });
   }
 }
