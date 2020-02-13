@@ -185,30 +185,15 @@ If we do not change this then your application on the live server will not be ab
 
 ## Built With
 
-* [Dropwizard](http://www.dropwizard.io/1.0.2/docs/) - The web framework used
-* [Maven](https://maven.apache.org/) - Dependency Management
-* [ROME](https://rometools.github.io/rome/) - Used to generate RSS Feeds
-
-## Contributing
-
-Please read [CONTRIBUTING.md](https://gist.github.com/PurpleBooth/b24679402957c63ec426) for details on our code of conduct, and the process for submitting pull requests to us.
-
-## Versioning
-
-We use [SemVer](http://semver.org/) for versioning. For the versions available, see the [tags on this repository](https://github.com/your/project/tags). 
+* [Node.js](https://nodejs.org/en/) - The server framework used
+* [Express](https://expressjs.com/) - The web framework used with Node.js
+* [MongoDB](https://www.mongodb.com/) - Our database
+* [Mongoose](https://mongoosejs.com/) - This is our Object Data Modeling (ODM) library for MongoDB and Node.js
 
 ## Authors
 
-* **Billie Thompson** - *Initial work* - [PurpleBooth](https://github.com/PurpleBooth)
-
-See also the list of [contributors](https://github.com/your/project/contributors) who participated in this project.
+* **Nichita Postolachi** - *System Architecture and Solution Design* - [D0019208](https://github.com/D0019208)
 
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details
-
-## Acknowledgments
-
-* Hat tip to anyone whose code was used
-* Inspiration
-* etc
