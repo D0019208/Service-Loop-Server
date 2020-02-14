@@ -202,8 +202,6 @@ let create_agreement_pdf = function create_agreement_pdf(tutorial_information, s
                 align: 'left'
             }
             );
-        } else {
-            doc.text(" Signed: ");
         }
  
         doc.rect(doc.x, 160, 500, doc.y).stroke();
