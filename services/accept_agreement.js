@@ -1,8 +1,5 @@
 let accept_agreement = async function accept_agreement(database_connection, post_id, student_signature) {
-    const Digital_Signature = require('./Digital_Signature');
-    const fs = require('fs');
-    const path = require('path');
-    const base_path = path.join(__dirname, '../');
+    const Digital_Signature = require('./Digital_Signature'); 
     const functions = require('./functions');
 
     const signature_controller = new Digital_Signature();

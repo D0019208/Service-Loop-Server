@@ -295,13 +295,14 @@ class database {
    * the normal notification added and the tutor notification added 
    */
   async add_tutorial(request_title, request_description, request_modules, users_email) {
+    
     const contenxt = this;
     const postModel = require('../models/post');
     let newPost = new postModel();
     const dateformat = require('dateformat');
 
     //Create New Users from Schema 'User.js' in models folder
-    let users_name = await this.getNameByEmail(users_email);
+    let users_name = await this.getNameByEmail(users_email); 
     newPost.std_name = users_name.users_full_name;
     newPost.std_email = users_email;
     newPost.std_avatar = "https://d00192082.alwaysdata.net/ServiceLoopServer/resources/images/base_user.png";
@@ -315,7 +316,8 @@ class database {
     newPost.post_modules = request_modules;
 
     return new Promise((resolve, reject) => {
-      newPost.save(async function (err, post) {
+      try {
+newPost.save(async function (err, post) {
         //If an error has occured, we do not create a notification but return an Object with the "error" key set to true and the error message in the "response" key
         if (err) {
           contenxt.disconnect();
@@ -344,6 +346,10 @@ class database {
           }
         }
       });
+      } catch(ex) {
+        resolve(ex)
+      }
+      
     });
   }
 

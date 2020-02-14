@@ -24,9 +24,7 @@ let create_new_user = async function create_new_user(users_full_name, users_pass
      * @returns {Promise} This Promise will contain an object that contains 2 keys: error and response, the "error" key will be a boolean 
      * that specifies wether the registration was successful or not and the "response" key will be a String that contains the hashed password from the function
      */
-    const users_password_hash = (users_password) => {
-        return { error: false, response: "12345aA@", type: "password_hash" };
-
+    const users_password_hash = (users_password) => { 
         return new Promise((resolve, reject) => {
             const bcrypt = require('bcrypt');
             const saltRounds = 10;
