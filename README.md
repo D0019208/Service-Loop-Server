@@ -1,4 +1,4 @@
-# Service Loop Server
+# Student Loop - Server
 
 This is the server used by the Service Loop app. I built the server architecture with a 3-tier achitecture design in mind. 
 
@@ -119,7 +119,35 @@ host: 'smtp.gmail.com',
         }
 ```
 
-7.) And finally, launch the server!
+7.) Next, in the same file, we change the "base_path" variable like below
+
+From this:
+```
+let base_path = path.join(__dirname, '../');
+//let base_path = '/';
+```
+
+To this:
+```
+//let base_path = path.join(__dirname, '../');
+let base_path = '/';
+```
+
+8.) In the 'services' folder, find 'Digital_Signature.js' and change change the "base_path" variable like below
+
+From this:
+```
+let base_path = path.join(__dirname, '../');
+//let base_path = '/';
+```
+
+To this:
+```
+//let base_path = path.join(__dirname, '../');
+let base_path = '/';
+```
+
+9.) And finally, launch the server!
 ```
 node index.js
 ```
@@ -181,7 +209,35 @@ If we do not change this then your application on the live server will not be ab
 
 3.) In the 'services' folder, find the 'functions.js' file, change the smtp details to our sendgrid details.
 
-4.) Upload the server WITHOUT the node_modules to the server
+4.) In the 'services' folder, find the 'functions.js' file, change the smtp details to our sendgrid details.
+
+From this:
+```
+//let base_path = path.join(__dirname, '../');
+let base_path = '/';
+```
+
+To this:
+```
+let base_path = path.join(__dirname, '../');
+//let base_path = '/';
+```
+
+5.) In the 'services' folder, find 'Digital_Signature.js' and change change the "base_path" variable like below
+
+From this:
+```
+//let base_path = path.join(__dirname, '../');
+let base_path = '/';
+```
+
+To this:
+```
+let base_path = path.join(__dirname, '../');
+//let base_path = '/';
+```
+
+6.) Upload the server WITHOUT the node_modules to the server
 
 ## Built With
 
