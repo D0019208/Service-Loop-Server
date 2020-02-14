@@ -38,8 +38,16 @@ class Live_Updates {
                 this.sendTutorialAcceptedNotification(socket, data);
             });
 
+            socket.on('agreement_generated', (data) => {
+                this.sendAgreementGeneratedNotification(socket, data);
+            });
+
             socket.on('agreement_rejected', (data) => {
                 this.sendAgreementRejectedNotification(socket, data);
+            });
+
+            socket.on('agreement_accepted', (data) => {
+                this.sendAgreementAcceptedNotification(socket, data);
             });
 
             //Update the socket once a user becomes a tutor (add modules)
@@ -119,7 +127,20 @@ class Live_Updates {
             }
         }
     }
+ 
+    sendAgreementGeneratedNotification(socket, data) {
+        console.log("Unique 2")
+        console.log(this.users_connected)
+        console.log(data);
 
+        for (let i = 0; i < this.users_connected.length; i++) {
+            if (this.users_connected[i].email === data.the_notification.response.std_email) {
+                console.log("work")
+                socket.to(this.users_connected[i].socket_id).emit("add_agreement_created_notification", { response: data.the_notification.response, post: data.the_post });
+            }
+        }
+    }
+ 
     sendAgreementRejectedNotification(socket, data) {
         console.log("Rejected")
         console.log(this.users_connected)
@@ -129,6 +150,19 @@ class Live_Updates {
             if (this.users_connected[i].email === data.the_post.post_tutor_email) {
                 console.log("Send rejected")
                 socket.to(this.users_connected[i].socket_id).emit("agreement_rejected_tutor", { response: data.the_notification.response, post: data.the_post });
+            }
+        }
+    }
+
+    sendAgreementAcceptedNotification(socket, data) {
+        console.log("Rejected")
+        console.log(this.users_connected)
+        console.log(data);
+
+        for (let i = 0; i < this.users_connected.length; i++) {
+            if (this.users_connected[i].email === data.the_post.post_tutor_email) {
+                console.log("Send rejected")
+                socket.to(this.users_connected[i].socket_id).emit("agreement_accepted_tutor", { response: data.the_notification.response, post: data.the_post });
             }
         }
     }

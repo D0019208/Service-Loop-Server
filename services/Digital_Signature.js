@@ -41,7 +41,7 @@ class Digitally_Sign {
                             //fs.unlinkSync(base_path + pdf_path.substring(0, pdf_path.length - 4) + '_signed.pdf');
 
                             //Return error
-                            resolve({ error: true, response: error });
+                            resolve({ error: true, response: stdout });
                         } else {
                             //fs.unlinkSync(pdf_path);
                             resolve({ error: false, response: pdf_path.replace(/(\.[\w\d_-]+)$/i, '_signed$1') });
