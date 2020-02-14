@@ -356,20 +356,20 @@ app.post('/reject_agreement', async (req, res) => {
   return;
 });
 
-var server = app.listen(3001, async function () {
-  console.log('App started!');
+// var server = app.listen(3001, async function () {
+//   console.log('App started!');
 
-  // let database = require('./services/database')
+//   // let database = require('./services/database')
 
-  // const database_connection = new database("Tutum_Nichita", "EajHKuViBCaL62Sj", "service_loop");
-  // let db_con_response = await database_connection.connect();
+//   // const database_connection = new database("Tutum_Nichita", "EajHKuViBCaL62Sj", "service_loop");
+//   // let db_con_response = await database_connection.connect();
 
-  // //DELETE EVERYTHING
-  // await database_connection.reset();
+//   // //DELETE EVERYTHING
+//   // await database_connection.reset();
 
-  Live_Updates_Controller = new Live_Updates(server, app);
-  Live_Updates_Controller.connect();
-});
+//   Live_Updates_Controller = new Live_Updates(server, app);
+//   Live_Updates_Controller.connect();
+// });
 
 var server = app.listen(process.env.ALWAYSDATA_HTTPD_PORT, process.env.ALWAYSDATA_HTTPD_IP, async function () {
   console.log('App started!');
