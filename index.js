@@ -2,6 +2,10 @@ const express = require('express');
 const cors = require('cors');
 const Live_Updates = require('./services/Live_Updates');
 const app = express();
+const path = require('path');
+
+global.blockchain_api_key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJBcGlLZXkiOiJBMjBNM1haLTRDSzRNTjUtSkNRMDJNQi00WkFFSFAzIiwiQXBpU2VjcmV0IjoianUyUjRTbHNpMzVPakdjIiwiUGFzc3BocmFzZSI6IjIyNDBjNmEzMjJjMjRlNzgyMmM1YmM3ZTM1Y2RkNWI0IiwiaWF0IjoxNTgyNjM1Mjc2fQ.Hi92qvQhQW4R2Sh2OuUMTNyx4dY69wnyJq6Z49maOsE";
+global.localhost = true;  
 
 var Live_Updates_Controller;
 
@@ -366,16 +370,11 @@ app.post('/validate_digital_signatures', async (req, res) => {
 
   res.json(await verify_digital_signatures_handler.verify_digital_signatures(database_connection, req.body));
   return;
-}); 
-
-app.post('/test', async (req, res) => {
-  res.json(process.cwd());
-  return;
-});
+});  
 
 app.post('/load_blockchain_content', async (req, res) => {
   const Blockchain = require('./services/Blockchain');
-  const blockchain_controller = new Blockchain('eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJBcGlLZXkiOiJOTkNFSkZTLVM3NjRYMUgtSkdOUlhTUC05QkVZMjZLIiwiQXBpU2VjcmV0IjoiVUYwRGhrVTNmMnQ2VHBqIiwiUGFzc3BocmFzZSI6ImZlODgxNDZhOTBkNWYwMmViNTcxYWUwMzI1YTFjZjk1IiwiaWF0IjoxNTgxNTA2MTM4fQ.bnBYyoX5oKypA2uFGK0D6oTHKz8UiYETdZ6QZDQK4-o');
+  const blockchain_controller = new Blockchain(global.blockchain_api_key);
 
   let response = await blockchain_controller.get_transactions_by_key(req.body.key);
   console.log(response);
@@ -384,24 +383,24 @@ app.post('/load_blockchain_content', async (req, res) => {
   return;
 });
 
-var server = app.listen(3001, async function () {
-  console.log('App started!');
-
-  // let database = require('./services/database')
-
-  // const database_connection = new database("Tutum_Nichita", "EajHKuViBCaL62Sj", "service_loop");
-  // let db_con_response = await database_connection.connect();
-
-  // //DELETE EVERYTHING
-  // await database_connection.reset();
-
-  Live_Updates_Controller = new Live_Updates(server, app);
-  Live_Updates_Controller.connect(); 
-});
-
-// var server = app.listen(process.env.ALWAYSDATA_HTTPD_PORT, process.env.ALWAYSDATA_HTTPD_IP, async function () {
+// var server = app.listen(3001, async function () {
 //   console.log('App started!');
 
+//   // let database = require('./services/database')
+
+//   // const database_connection = new database("Tutum_Nichita", "EajHKuViBCaL62Sj", "service_loop");
+//   // let db_con_response = await database_connection.connect();
+
+//   // //DELETE EVERYTHING
+//   // await database_connection.reset();
+
 //   Live_Updates_Controller = new Live_Updates(server, app);
-//   Live_Updates_Controller.connect();
+//   Live_Updates_Controller.connect(); 
 // });
+
+var server = app.listen(process.env.ALWAYSDATA_HTTPD_PORT, process.env.ALWAYSDATA_HTTPD_IP, async function () {
+  console.log('App started!');
+
+  Live_Updates_Controller = new Live_Updates(server, app);
+  Live_Updates_Controller.connect();
+});

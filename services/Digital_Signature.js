@@ -9,8 +9,14 @@ class Digitally_Sign {
     //"java -jar /home/d00192082/ServiceLoopServer/resources/java/JSignPdf.jar /home/d00192082/ServiceLoopServer/resources/pdfs/agreement_5e428eff1700d139c09167d2.pdf -v --visible-signature -d /home/d00192082/ServiceLoopServer/resources/pdfs -a --bg-path /home/d00192082/ServiceLoopServer/resources/images/adobe_watersign.png -page 1000 -kst PKCS12 -ksf /home/d00192082/ServiceLoopServer/ssl/client_5e41bc1b78c9ad2fa0dadac7.p12 -ksp pycnaMLBLp"
     async digitally_sign_pdf(pdf_path, digital_certificate, append_signature = false) {
         const path = require('path');
-        //let base_path = path.join(__dirname, '../');
-        let base_path = '';
+        let base_path;
+
+        //For debugging purposes, if on localhost, we use a different path
+        if(global.localhost) {
+            base_path = '';
+        } else {
+            base_path = path.join(__dirname, '../'); 
+        } 
 
         let digitally_sign_pdf_once_command = `java -jar ${base_path}resources/java/JSignPdf.jar ${base_path + pdf_path} -v --visible-signature -d ${base_path}resources/pdfs -a --bg-path ${base_path}resources/images/adobe_watersign.png -page 1000 -kst PKCS12 -ksf ${base_path + digital_certificate.tutor.certificate_path} -ksp ${digital_certificate.tutor.certificate_password} 2>&1`;
         let digitally_sign_pdf_twice_command;

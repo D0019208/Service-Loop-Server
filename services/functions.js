@@ -9,9 +9,14 @@
 let send_email_with_agreement = function send_email_with_agreement(email_object) {
     const nodemailer = require('nodemailer');
     const path = require('path');
-    
-    let base_path = path.join(__dirname, '../');
-    //let base_path = "/";
+    let base_path;
+
+    //For debugging purposes, if on localhost, we use a different path
+    if (global.localhost) {
+        base_path = '';
+    } else {
+        base_path = path.join(__dirname, '../');
+    }
 
     const client = nodemailer.createTransport({
         host: 'smtp.sendgrid.net',
@@ -86,8 +91,14 @@ let send_email_with_agreement = function send_email_with_agreement(email_object)
 let create_agreement_pdf = function create_agreement_pdf(tutorial_information, signatures, post, student_signed = false) {
     const fs = require('fs');
     const path = require('path');
-    let base_path = path.join(__dirname, '../');
-    //let base_path = "/";
+    let base_path;
+
+    //For debugging purposes, if on localhost, we use a different path
+    if (global.localhost) {
+        base_path = '';
+    } else {
+        base_path = path.join(__dirname, '../');
+    }
 
     let today = new Date();
     let signed_on = today.getDate() + "/" + parseInt(today.getMonth() + 1) + "/" + today.getFullYear();
@@ -203,7 +214,7 @@ let create_agreement_pdf = function create_agreement_pdf(tutorial_information, s
             }
             );
         }
- 
+
         doc.rect(doc.x, 160, 500, doc.y).stroke();
         doc.moveDown();
 

@@ -680,7 +680,7 @@ class database {
   //TO BE CONTINUED
   async accept_post(tutor_email, tutor_name, post_id) {
     const Blockchain = require('./Blockchain');
-    const blockchain_controller = new Blockchain('eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJBcGlLZXkiOiJOTkNFSkZTLVM3NjRYMUgtSkdOUlhTUC05QkVZMjZLIiwiQXBpU2VjcmV0IjoiVUYwRGhrVTNmMnQ2VHBqIiwiUGFzc3BocmFzZSI6ImZlODgxNDZhOTBkNWYwMmViNTcxYWUwMzI1YTFjZjk1IiwiaWF0IjoxNTgxNTA2MTM4fQ.bnBYyoX5oKypA2uFGK0D6oTHKz8UiYETdZ6QZDQK4-o');
+    const blockchain_controller = new Blockchain(global.blockchain_api_key);
     const postModel = require('../models/post');
     const filter = { _id: post_id };
     const update = { post_tutor_email: tutor_email, post_tutor_name: tutor_name, post_status: "In negotiation" };
@@ -696,7 +696,7 @@ class database {
         return new Promise((resolve, reject) => {
           postModel.findOneAndUpdate(filter, update, { new: true }).then(async result => {
             let notification_response_student = await this.create_notification("Tutorial accepted", tutor_name + " has accepted to help you with the following tutorial '" + result.post_title + "'. The tutor will be in contact shortly.", result.std_email, ["Tutorial request accepted"], { post_id: post_id });
-            blockchain_controller.add_transaction_to_blockchain(post_id, {title: "Tutorial accepted", content: "'" + tutor_name + "' has accepted to tutor '" + result.std_name + "' for the following tutorial '" + result.post_title + "'"});
+            blockchain_controller.add_transaction_to_blockchain(post_id, { title: "Tutorial accepted", content: "'" + tutor_name + "' has accepted to tutor '" + result.std_name + "' for the following tutorial '" + result.post_title + "'" });
             this.disconnect();
             resolve({ error: false, response: { tutor_notification: notification_response_tutor.response, student_notification: notification_response_student, post: result } });
           });
@@ -907,7 +907,14 @@ class database {
     const postModel = require('../models/post');
     const fs = require('fs');
     const path = require('path');
-    let base_path = path.join(__dirname, '../');
+    let base_path;
+
+    //For debugging purposes, if on localhost, we use a different path
+    if (global.localhost) {
+      base_path = '';
+    } else {
+      base_path = path.join(__dirname, '../');
+    }
 
     const filter = { _id: post_id };
     const update = { post_agreement_url: "", tutor_signature: "", post_agreement_offered: false };
@@ -919,7 +926,7 @@ class database {
         let tutor_notification = await this.create_notification("Agreement rejected", "The student, '" + result.std_name + "' has rejected the agreement for the tutorial, '" + result.post_title + "'. Please get in contact with him/her, via email at '" + result.std_email + "' to arrange a new agreement.", result.post_tutor_email, ["Tutorial agreement rejected"], { post_id: post_id });
 
         const Blockchain = require('./Blockchain');
-        const blockchain_controller = new Blockchain('eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJBcGlLZXkiOiJOTkNFSkZTLVM3NjRYMUgtSkdOUlhTUC05QkVZMjZLIiwiQXBpU2VjcmV0IjoiVUYwRGhrVTNmMnQ2VHBqIiwiUGFzc3BocmFzZSI6ImZlODgxNDZhOTBkNWYwMmViNTcxYWUwMzI1YTFjZjk1IiwiaWF0IjoxNTgxNTA2MTM4fQ.bnBYyoX5oKypA2uFGK0D6oTHKz8UiYETdZ6QZDQK4-o');
+        const blockchain_controller = new Blockchain(global.blockchain_api_key);
         blockchain_controller.add_transaction_to_blockchain(post_id, { title: "Agreement rejected", content: "The student, '" + result.std_name + "' has rejected the agreement for the tutorial, '" + result.post_title + "'. The tutor must now create a new agreement." });
 
         resolve({ error: false, response: "Tutorial rejected successfully.", updated_tutorial: result, student_notification: student_notification, tutor_notification: tutor_notification });

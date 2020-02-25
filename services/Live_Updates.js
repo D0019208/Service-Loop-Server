@@ -1,12 +1,14 @@
 class Live_Updates {
     constructor(server, app) {
-        //this.socket = require('socket.io').listen(server);
-        //this.socket.set("origins", "*:*");
-
-
-        server = require('http').Server(app);
-        this.socket = require('socket.io')(server); 
-        server.listen(80);
+        //For debugging purposes, if on localhost, we use a different way of initializing the websockets
+        if (global.localhost) {
+            server = require('http').Server(app);
+            this.socket = require('socket.io')(server);
+            server.listen(80);
+        } else {
+            this.socket = require('socket.io').listen(server);
+            this.socket.set("origins", "*:*");
+        }
 
         this.users_connected = [];
     }
@@ -127,7 +129,7 @@ class Live_Updates {
             }
         }
     }
- 
+
     sendAgreementGeneratedNotification(socket, data) {
         console.log("Unique 2")
         console.log(this.users_connected)
@@ -140,7 +142,7 @@ class Live_Updates {
             }
         }
     }
- 
+
     sendAgreementRejectedNotification(socket, data) {
         console.log("Rejected")
         console.log(this.users_connected)

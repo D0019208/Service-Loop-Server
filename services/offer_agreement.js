@@ -2,7 +2,7 @@ let offer_agreement = async function offer_agreement(database_connection, post_i
     //Declare all libraries we need
     const Digital_Signature = require('./Digital_Signature'); 
     const Blockchain = require('./Blockchain');
-    const blockchain_controller = new Blockchain('eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJBcGlLZXkiOiJOTkNFSkZTLVM3NjRYMUgtSkdOUlhTUC05QkVZMjZLIiwiQXBpU2VjcmV0IjoiVUYwRGhrVTNmMnQ2VHBqIiwiUGFzc3BocmFzZSI6ImZlODgxNDZhOTBkNWYwMmViNTcxYWUwMzI1YTFjZjk1IiwiaWF0IjoxNTgxNTA2MTM4fQ.bnBYyoX5oKypA2uFGK0D6oTHKz8UiYETdZ6QZDQK4-o');
+    const blockchain_controller = new Blockchain(global.blockchain_api_key);
     const signature_controller = new Digital_Signature();
     const functions = require('./functions');
 
