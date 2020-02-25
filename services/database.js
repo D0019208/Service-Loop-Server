@@ -295,14 +295,14 @@ class database {
    * the normal notification added and the tutor notification added 
    */
   async add_tutorial(request_title, request_description, request_modules, users_email) {
-    
+
     const contenxt = this;
     const postModel = require('../models/post');
     let newPost = new postModel();
     const dateformat = require('dateformat');
 
     //Create New Users from Schema 'User.js' in models folder
-    let users_name = await this.getNameByEmail(users_email); 
+    let users_name = await this.getNameByEmail(users_email);
     newPost.std_name = users_name.users_full_name;
     newPost.std_email = users_email;
     newPost.std_avatar = "https://d00192082.alwaysdata.net/ServiceLoopServer/resources/images/base_user.png";
@@ -317,39 +317,39 @@ class database {
 
     return new Promise((resolve, reject) => {
       try {
-newPost.save(async function (err, post) {
-        //If an error has occured, we do not create a notification but return an Object with the "error" key set to true and the error message in the "response" key
-        if (err) {
-          contenxt.disconnect();
-          resolve({ error: true, response: err });
-        } else {
-          console.log("This post")
-          console.log(post);
-          //If there is no error, we create a notification for the user stating that their request has been sent
-          let notification_response = await contenxt.create_notification("Tutorial request sent", "You have successfully requested a tutorial for the following modules: " + request_modules.join(', ') + ". A tutor will be in contact with you as soon as possible.", post.std_email, ["Tutorial request sent"], { post_id: post._id, modules: request_modules });
+        newPost.save(async function (err, post) {
+          //If an error has occured, we do not create a notification but return an Object with the "error" key set to true and the error message in the "response" key
+          if (err) {
+            contenxt.disconnect();
+            resolve({ error: true, response: err });
+          } else {
+            console.log("This post")
+            console.log(post);
+            //If there is no error, we create a notification for the user stating that their request has been sent
+            let notification_response = await contenxt.create_notification("Tutorial request sent", "You have successfully requested a tutorial for the following modules: " + request_modules.join(', ') + ". A tutor will be in contact with you as soon as possible.", post.std_email, ["Tutorial request sent"], { post_id: post._id, modules: request_modules });
 
-          //If the tutorial request notification succeeds, we create a notification for all tutors that can help with the requested modules 
-          if (!notification_response.error) {
-            let tutor_notification_response = await contenxt.create_notification_for_tutors("New tutorial request", post.std_email, post.std_email + " requested a tutorial for the " + request_modules.join(', ') + " modules. Please see the post in context.", ["Tutorial requested"], request_modules, post._id)
+            //If the tutorial request notification succeeds, we create a notification for all tutors that can help with the requested modules 
+            if (!notification_response.error) {
+              let tutor_notification_response = await contenxt.create_notification_for_tutors("New tutorial request", post.std_email, post.std_email + " requested a tutorial for the " + request_modules.join(', ') + " modules. Please see the post in context.", ["Tutorial requested"], request_modules, post._id)
 
-            //If the notification is sent, we return an object with the "error" key set to false along with a response
-            if (!tutor_notification_response.error) {
-              contenxt.disconnect();
-              resolve({ error: false, debug_message: "Post created successfully.", response: [post, notification_response.response, tutor_notification_response.response] });
+              //If the notification is sent, we return an object with the "error" key set to false along with a response
+              if (!tutor_notification_response.error) {
+                contenxt.disconnect();
+                resolve({ error: false, debug_message: "Post created successfully.", response: [post, notification_response.response, tutor_notification_response.response] });
+              } else {
+                contenxt.disconnect();
+                resolve({ error: true, response: notification_response.response });
+              }
             } else {
               contenxt.disconnect();
               resolve({ error: true, response: notification_response.response });
             }
-          } else {
-            contenxt.disconnect();
-            resolve({ error: true, response: notification_response.response });
           }
-        }
-      });
-      } catch(ex) {
+        });
+      } catch (ex) {
         resolve(ex)
       }
-      
+
     });
   }
 
@@ -679,6 +679,8 @@ newPost.save(async function (err, post) {
   }
   //TO BE CONTINUED
   async accept_post(tutor_email, tutor_name, post_id) {
+    const Blockchain = require('./Blockchain');
+    const blockchain_controller = new Blockchain('eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJBcGlLZXkiOiJOTkNFSkZTLVM3NjRYMUgtSkdOUlhTUC05QkVZMjZLIiwiQXBpU2VjcmV0IjoiVUYwRGhrVTNmMnQ2VHBqIiwiUGFzc3BocmFzZSI6ImZlODgxNDZhOTBkNWYwMmViNTcxYWUwMzI1YTFjZjk1IiwiaWF0IjoxNTgxNTA2MTM4fQ.bnBYyoX5oKypA2uFGK0D6oTHKz8UiYETdZ6QZDQK4-o');
     const postModel = require('../models/post');
     const filter = { _id: post_id };
     const update = { post_tutor_email: tutor_email, post_tutor_name: tutor_name, post_status: "In negotiation" };
@@ -694,7 +696,7 @@ newPost.save(async function (err, post) {
         return new Promise((resolve, reject) => {
           postModel.findOneAndUpdate(filter, update, { new: true }).then(async result => {
             let notification_response_student = await this.create_notification("Tutorial accepted", tutor_name + " has accepted to help you with the following tutorial '" + result.post_title + "'. The tutor will be in contact shortly.", result.std_email, ["Tutorial request accepted"], { post_id: post_id });
-
+            blockchain_controller.add_transaction_to_blockchain(post_id, {title: "Tutorial accepted", content: "'" + tutor_name + "' has accepted to tutor '" + result.std_name + "' for the following tutorial '" + result.post_title + "'"});
             this.disconnect();
             resolve({ error: false, response: { tutor_notification: notification_response_tutor.response, student_notification: notification_response_student, post: result } });
           });
@@ -761,7 +763,7 @@ newPost.save(async function (err, post) {
   }
 
   //TEST THIS
-  get_digital_certificate_details(email) { 
+  get_digital_certificate_details(email) {
     console.log(email)
     const userModel = require('../models/users');
 
@@ -870,21 +872,21 @@ newPost.save(async function (err, post) {
     return new Promise(async (resolve, reject) => {
       let is_room_booked;
 
-      if(!room_taken) {
+      if (!room_taken) {
         is_room_booked = await this.is_room_booked(post_id, update_object.tutorial_room);
       } else {
         is_room_booked = false;
       }
-      
+
 
       if (!is_room_booked) {
         //resolve({error: false, response: "ddd"})
         postModel.findOneAndUpdate(filter, update).then(result => {
-          resolve({error: false, response: result});
+          resolve({ error: false, response: result });
         })
       } else {
-        resolve({error: true, response: 'Room ' + update_object.tutorial_room + " is already booked, please choose another room."})
-      } 
+        resolve({ error: true, response: 'Room ' + update_object.tutorial_room + " is already booked, please choose another room." })
+      }
     });
   }
 
@@ -895,7 +897,7 @@ newPost.save(async function (err, post) {
     const update = { post_agreement_url: agreement_url, tutor_signature: tutor_signature_data };
 
     return new Promise((resolve, reject) => {
-      postModel.findOneAndUpdate(filter, update).then(result => {
+      postModel.findOneAndUpdate(filter, update, { new: true }).then(result => {
         resolve(result);
       })
     });
@@ -915,6 +917,11 @@ newPost.save(async function (err, post) {
         fs.unlinkSync(base_path + 'resources/pdfs/agreement_' + post_id + '_signed.pdf');
         let student_notification = await this.create_notification("Agreement rejected", "You have successfully rejected the agreement for the tutorial, '" + result.post_title + "'. Please get in contact with your tutor, '" + result.post_tutor_name + "' via email at '" + result.post_tutor_email + "' to arrange a new agreement.", result.std_email, ["Tutorial agreement rejected"], { post_id: post_id });
         let tutor_notification = await this.create_notification("Agreement rejected", "The student, '" + result.std_name + "' has rejected the agreement for the tutorial, '" + result.post_title + "'. Please get in contact with him/her, via email at '" + result.std_email + "' to arrange a new agreement.", result.post_tutor_email, ["Tutorial agreement rejected"], { post_id: post_id });
+
+        const Blockchain = require('./Blockchain');
+        const blockchain_controller = new Blockchain('eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJBcGlLZXkiOiJOTkNFSkZTLVM3NjRYMUgtSkdOUlhTUC05QkVZMjZLIiwiQXBpU2VjcmV0IjoiVUYwRGhrVTNmMnQ2VHBqIiwiUGFzc3BocmFzZSI6ImZlODgxNDZhOTBkNWYwMmViNTcxYWUwMzI1YTFjZjk1IiwiaWF0IjoxNTgxNTA2MTM4fQ.bnBYyoX5oKypA2uFGK0D6oTHKz8UiYETdZ6QZDQK4-o');
+        blockchain_controller.add_transaction_to_blockchain(post_id, { title: "Agreement rejected", content: "The student, '" + result.std_name + "' has rejected the agreement for the tutorial, '" + result.post_title + "'. The tutor must now create a new agreement." });
+
         resolve({ error: false, response: "Tutorial rejected successfully.", updated_tutorial: result, student_notification: student_notification, tutor_notification: tutor_notification });
       })
     });
@@ -937,6 +944,8 @@ newPost.save(async function (err, post) {
         });
     });
   }
+
+  //TEST THIS
 }
 
 

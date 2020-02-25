@@ -1,12 +1,12 @@
 class Live_Updates {
     constructor(server, app) {
-        this.socket = require('socket.io').listen(server);
-        this.socket.set("origins", "*:*");
+        //this.socket = require('socket.io').listen(server);
+        //this.socket.set("origins", "*:*");
 
 
-        //server = require('http').Server(app);
-        //this.socket = require('socket.io')(server); 
-        //server.listen(80);
+        server = require('http').Server(app);
+        this.socket = require('socket.io')(server); 
+        server.listen(80);
 
         this.users_connected = [];
     }

@@ -356,24 +356,52 @@ app.post('/reject_agreement', async (req, res) => {
   return;
 });
 
-// var server = app.listen(3001, async function () {
+//TEST THIS
+app.post('/validate_digital_signatures', async (req, res) => {
+  const database = require('./services/database');
+  const verify_digital_signatures_handler = require('./services/verify_digital_signatures.js');
+
+  const database_connection = new database("Tutum_Nichita", "EajHKuViBCaL62Sj", "service_loop");
+  let db_con_response = await database_connection.connect();
+
+  res.json(await verify_digital_signatures_handler.verify_digital_signatures(database_connection, req.body));
+  return;
+}); 
+
+app.post('/test', async (req, res) => {
+  res.json(process.cwd());
+  return;
+});
+
+app.post('/load_blockchain_content', async (req, res) => {
+  const Blockchain = require('./services/Blockchain');
+  const blockchain_controller = new Blockchain('eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJBcGlLZXkiOiJOTkNFSkZTLVM3NjRYMUgtSkdOUlhTUC05QkVZMjZLIiwiQXBpU2VjcmV0IjoiVUYwRGhrVTNmMnQ2VHBqIiwiUGFzc3BocmFzZSI6ImZlODgxNDZhOTBkNWYwMmViNTcxYWUwMzI1YTFjZjk1IiwiaWF0IjoxNTgxNTA2MTM4fQ.bnBYyoX5oKypA2uFGK0D6oTHKz8UiYETdZ6QZDQK4-o');
+
+  let response = await blockchain_controller.get_transactions_by_key(req.body.key);
+  console.log(response);
+
+  res.json(response);
+  return;
+});
+
+var server = app.listen(3001, async function () {
+  console.log('App started!');
+
+  // let database = require('./services/database')
+
+  // const database_connection = new database("Tutum_Nichita", "EajHKuViBCaL62Sj", "service_loop");
+  // let db_con_response = await database_connection.connect();
+
+  // //DELETE EVERYTHING
+  // await database_connection.reset();
+
+  Live_Updates_Controller = new Live_Updates(server, app);
+  Live_Updates_Controller.connect(); 
+});
+
+// var server = app.listen(process.env.ALWAYSDATA_HTTPD_PORT, process.env.ALWAYSDATA_HTTPD_IP, async function () {
 //   console.log('App started!');
-
-//   // let database = require('./services/database')
-
-//   // const database_connection = new database("Tutum_Nichita", "EajHKuViBCaL62Sj", "service_loop");
-//   // let db_con_response = await database_connection.connect();
-
-//   // //DELETE EVERYTHING
-//   // await database_connection.reset();
 
 //   Live_Updates_Controller = new Live_Updates(server, app);
 //   Live_Updates_Controller.connect();
 // });
-
-var server = app.listen(process.env.ALWAYSDATA_HTTPD_PORT, process.env.ALWAYSDATA_HTTPD_IP, async function () {
-  console.log('App started!');
-
-  Live_Updates_Controller = new Live_Updates(server, app);
-  Live_Updates_Controller.connect();
-});

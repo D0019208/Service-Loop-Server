@@ -1,7 +1,10 @@
 let accept_agreement = async function accept_agreement(database_connection, post_id, student_signature) {
-    const Digital_Signature = require('./Digital_Signature'); 
+    const Digital_Signature = require('./Digital_Signature');
+    const Blockchain = require('./Blockchain');
+
     const functions = require('./functions');
 
+    const blockchain_controller = new Blockchain('eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJBcGlLZXkiOiJOTkNFSkZTLVM3NjRYMUgtSkdOUlhTUC05QkVZMjZLIiwiQXBpU2VjcmV0IjoiVUYwRGhrVTNmMnQ2VHBqIiwiUGFzc3BocmFzZSI6ImZlODgxNDZhOTBkNWYwMmViNTcxYWUwMzI1YTFjZjk1IiwiaWF0IjoxNTgxNTA2MTM4fQ.bnBYyoX5oKypA2uFGK0D6oTHKz8UiYETdZ6QZDQK4-o');
     const signature_controller = new Digital_Signature();
 
     //Get student details this way
@@ -29,12 +32,9 @@ let accept_agreement = async function accept_agreement(database_connection, post
     let notification_response_student = await database_connection.create_notification("Agreement accepted", "You have accepted the agreement offered by your tutor '" + update_post_agremeent_url_response.post_tutor_name + "'. Please note that the tutorial is scheduled for " + update_post_agreement_status_response.tutorial_date + " at " + update_post_agreement_status_response.tutorial_time + " in room " + update_post_agreement_status_response.tutorial_room + ". You can view the agreement by clicking the button below.", update_post_agreement_status_response.std_email, ["Tutorial agreement accepted"], { post_id: post_id });
     database_connection.disconnect();
 
+    blockchain_controller.add_transaction_to_blockchain(post_id, { title: "Agreement accepted", content: "The student, '" + update_post_agremeent_url_response.std_name + "' has accepted the agreement for the tutorial, '" + update_post_agremeent_url_response.post_title + "'. The tutorial will commence on " + update_post_agreement_status_response.tutorial_date + " at " + update_post_agreement_status_response.tutorial_time + ". Note that the student must sign in using his student card before the tutorial can begin." });
+
     return { error: false, response: "Agreement sent successfully", updated_tutorial: update_post_agremeent_url_response, tutor_notification: notification_response_tutor, student_notification: notification_response_student };
 }
 
 exports.accept_agreement = accept_agreement;
-
-
-
-
-

@@ -171,7 +171,7 @@ let create_new_user = async function create_new_user(users_full_name, users_pass
                     //Update the user with the new details 
                     let update_response = await database_connection.update_new_users_details(users_email, password_hash, digital_certificate_path, digital_certificate_password);
                     const blockchain = require('../Blockchain');
-                    const blockchain_connection = new blockchain('eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJBcGlLZXkiOiJOTkNFSkZTLVM3NjRYMUgtSkdOUlhTUC05QkVZMjZLIiwiQXBpU2VjcmV0IjoiVUYwRGhrVTNmMnQ2VHBqIiwiUGFzc3BocmFzZSI6ImZlODgxNDZhOTBkNWYwMmViNTcxYWUwMzI1YTFjZjk1IiwiaWF0IjoxNTgxNTA2MTM4fQ.bnBYyoX5oKypA2uFGK0D6oTHKz8UiYETdZ6QZDQK4-o');
+                    const blockchain_connection = new Blockchain('eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJBcGlLZXkiOiJOTkNFSkZTLVM3NjRYMUgtSkdOUlhTUC05QkVZMjZLIiwiQXBpU2VjcmV0IjoiVUYwRGhrVTNmMnQ2VHBqIiwiUGFzc3BocmFzZSI6ImZlODgxNDZhOTBkNWYwMmViNTcxYWUwMzI1YTFjZjk1IiwiaWF0IjoxNTgxNTA2MTM4fQ.bnBYyoX5oKypA2uFGK0D6oTHKz8UiYETdZ6QZDQK4-o');
 
                     let blockchain_user_added = await blockchain_connection.add_new_identity_to_blockchain(users_full_name + " User", users_full_name, "Student");
                     console.log(blockchain_user_added);
