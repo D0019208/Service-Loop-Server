@@ -3,6 +3,7 @@ const cors = require('cors');
 const Live_Updates = require('./services/Live_Updates');
 const app = express();
 const path = require('path');
+var server;
 
 global.blockchain_api_key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJBcGlLZXkiOiJBMjBNM1haLTRDSzRNTjUtSkNRMDJNQi00WkFFSFAzIiwiQXBpU2VjcmV0IjoianUyUjRTbHNpMzVPakdjIiwiUGFzc3BocmFzZSI6IjIyNDBjNmEzMjJjMjRlNzgyMmM1YmM3ZTM1Y2RkNWI0IiwiaWF0IjoxNTgyNjM1Mjc2fQ.Hi92qvQhQW4R2Sh2OuUMTNyx4dY69wnyJq6Z49maOsE";
 global.sms_app_key = "3i1ivu6elylunazito7y";
@@ -161,9 +162,11 @@ app.post('/verify_token', async (req, res) => {
     const database_connection = new database("Tutum_Nichita", "EajHKuViBCaL62Sj", "service_loop");
     let db_con_response = await database_connection.connect();
     let user_response = await database_connection.find_user_by_email(email);
+    let tutorials_count = await database_connection.find_tutored_tutorials(email);
+
     database_connection.disconnect();
 
-    res.json({ session_response: "Session valid", user: user_response });
+    res.json({ session_response: "Session valid", user: user_response, tutorials_count: tutorials_count });
     return;
   } catch (err) {
     if (err.message === "jwt expired") {
@@ -187,10 +190,12 @@ app.post('/localhost', async (req, res) => {
   const database_connection = new database("Tutum_Nichita", "EajHKuViBCaL62Sj", "service_loop");
   let db_con_response = await database_connection.connect();
   let user_response = await database_connection.find_user_by_email(email);
+  
+  let tutorials_count = await database_connection.find_tutored_tutorials(email);
   database_connection.disconnect();
 
-  res.json({ session_response: "Session valid", user: user_response });
-  return; 
+  res.json({ session_response: "Session valid", user: user_response, tutorials_count: tutorials_count });
+  return;
 });
 
 app.post('/register', async (req, res) => {
@@ -346,7 +351,7 @@ app.post('/offer_agreement', async (req, res) => {
   const database_connection = new database("Tutum_Nichita", "EajHKuViBCaL62Sj", "service_loop");
   let db_con_response = await database_connection.connect();
 
-  res.json(await offer_agreement.offer_agreement(database_connection, req.body.tutorial_id, req.body.tutorial_date.substring(0, 10), req.body.tutorial_time, req.body.tutorial_room, req.body.tutor_signature));
+  res.json(await offer_agreement.offer_agreement(database_connection, req.body.tutorial_id, req.body.tutorial_date.substring(0, 10), req.body.tutorial_time, req.body.tutorial_room, req.body.tutor_signature, req.body.tutor_avatar));
   return;
 });
 
@@ -411,28 +416,43 @@ app.post('/update_avatar', async (req, res) => {
   return;
 });
 
-var server = app.listen(3001, async function () {
-  console.log('App started!');
+//TEST THIS
+app.post('/edit_skills', async (req, res) => {
+  const database = require('./services/database'); 
 
-   let database = require('./services/database')
+  const database_connection = new database("Tutum_Nichita", "EajHKuViBCaL62Sj", "service_loop");
+  let db_con_response = await database_connection.connect();
 
-   const database_connection = new database("Tutum_Nichita", "EajHKuViBCaL62Sj", "service_loop");
-   let db_con_response = await database_connection.connect();
+  let response = await database_connection.update_user(req.body.users_email, {user_modules: req.body.skills});
 
-   //DELETE EVERYTHING
-   //await database_connection.reset();
-
-  //  const register_new_user = require('./services/registration/register');
-  // const validator = require('validator');
-  //  await register_new_user.create_new_user(validator.escape("John Doe"), "12345aA@", "12345aA@", validator.escape("D00192082@student.dkit.ie"), validator.escape("0899854571"), database_connection);
-
-  Live_Updates_Controller = new Live_Updates(server, app);
-  Live_Updates_Controller.connect();
+  res.json(response);
+  return;
 });
 
-// var server = app.listen(process.env.ALWAYSDATA_HTTPD_PORT, process.env.ALWAYSDATA_HTTPD_IP, async function () {
-//   console.log('App started!'); 
+if (global.localhost) {
+  server = app.listen(3001, async function () {
+    console.log('App started!');
 
-//   Live_Updates_Controller = new Live_Updates(server, app);
-//   Live_Updates_Controller.connect();
-// });
+    let database = require('./services/database')
+
+    const database_connection = new database("Tutum_Nichita", "EajHKuViBCaL62Sj", "service_loop");
+    //let db_con_response = await database_connection.connect();
+
+    //DELETE EVERYTHING
+    //await database_connection.reset();
+
+    //const register_new_user = require('./services/registration/register');
+    //const validator = require('validator');
+    //await register_new_user.create_new_user(validator.escape("John Doe"), "12345aA@", "12345aA@", validator.escape("D00192082@student.dkit.ie"), validator.escape("0899854571"), database_connection);
+
+    Live_Updates_Controller = new Live_Updates(server, app);
+    Live_Updates_Controller.connect();
+  });
+} else {
+  server = app.listen(process.env.ALWAYSDATA_HTTPD_PORT, process.env.ALWAYSDATA_HTTPD_IP, async function () {
+    console.log('App started!');
+
+    Live_Updates_Controller = new Live_Updates(server, app);
+    Live_Updates_Controller.connect();
+  });
+} 

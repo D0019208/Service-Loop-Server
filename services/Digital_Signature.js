@@ -12,11 +12,11 @@ class Digitally_Sign {
         let base_path;
 
         //For debugging purposes, if on localhost, we use a different path
-        if(global.localhost) {
+        if (global.localhost) {
             base_path = '';
         } else {
-            base_path = path.join(__dirname, '../'); 
-        } 
+            base_path = path.join(__dirname, '../');
+        }
 
         let digitally_sign_pdf_once_command = `java -jar ${base_path}resources/java/JSignPdf.jar ${base_path + pdf_path} -v --visible-signature -d ${base_path}resources/pdfs -a --bg-path ${base_path}resources/images/adobe_watersign.png -page 1000 -kst PKCS12 -ksf ${base_path + digital_certificate.tutor.certificate_path} -ksp ${digital_certificate.tutor.certificate_password} 2>&1`;
         let digitally_sign_pdf_twice_command;
@@ -112,12 +112,19 @@ class Digitally_Sign {
     }
 
     async verify_digital_signature(pdf, data) {
+
         //2>&1 <--- Add to command MAYBE
-        let compromised_agreements = [{ pdf: "test.pdf", party_1_digital_certificate: { digital_certificate: "", digital_certificate_password: "" }, party_2_digital_certificate: { digital_certificate: "", digital_certificate_password: "" } }];
         const path = require('path');
         //let base_path = path.join(__dirname, '../');
-        let base_path = '';
+        let base_path;
 
+        //For debugging purposes, if on localhost, we use a different path
+        if (global.localhost) {
+            base_path = '';
+        } else {
+            base_path = path.join(__dirname, '../');
+        }
+ 
         let check_one_digital_signature_command = [`java -jar ${base_path}resources/java/Verifier.jar ${base_path + pdf} -kf ${base_path + data.party_1_digital_certificate.digital_certificate} -kp ${data.party_1_digital_certificate.digital_certificate_password} -kt PKCS12`];
 
         if (typeof data.party_2_digital_certificate !== 'undefined') {
@@ -134,13 +141,13 @@ class Digitally_Sign {
                                 //console.log('stdout: ' + stdout);
                                 //console.log('stderr: ' + stderr);
                                 //console.log('exec error: ' + error);
-                                let error_response = this.check_digital_signature_error_code(error.code)
+                                let error_response = this.check_digital_signature_error_code(error.code) 
                                 resolve({ error: true, response: { message: error_response, pdf: pdf, error_code: error.code } });
                             }
                         }
 
                         if (i === check_one_digital_signature_command.length - 1) {
-                            resolve({ error: false, response: "The digital signatures for this agreement are valid." });
+                            resolve({ error: false, response: "Digital signatures are valid." });
                         }
                     });
             }
@@ -150,7 +157,7 @@ class Digitally_Sign {
 
     }
 
-    check_digital_signature_error_code(error_code) {
+    check_digital_signature_error_code(error_code) { 
         let error_message;
 
         switch (error_code) {

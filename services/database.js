@@ -922,8 +922,8 @@ class database {
     return new Promise((resolve, reject) => {
       postModel.findOneAndUpdate(filter, update).then(async (result) => {
         fs.unlinkSync(base_path + 'resources/pdfs/agreement_' + post_id + '_signed.pdf');
-        let student_notification = await this.create_notification("Agreement rejected", "You have successfully rejected the agreement for the tutorial, '" + result.post_title + "'. Please get in contact with your tutor, '" + result.post_tutor_name + "' via email at '" + result.post_tutor_email + "' to arrange a new agreement.", result.std_email, ["Tutorial agreement rejected"], { post_id: post_id });
-        let tutor_notification = await this.create_notification("Agreement rejected", "The student, '" + result.std_name + "' has rejected the agreement for the tutorial, '" + result.post_title + "'. Please get in contact with him/her, via email at '" + result.std_email + "' to arrange a new agreement.", result.post_tutor_email, ["Tutorial agreement rejected"], { post_id: post_id });
+        let student_notification = await this.create_notification("Agreement rejected", "You have successfully rejected the agreement for the tutorial, '" + result.post_title + "'. Please get in contact with your tutor, '" + result.post_tutor_name + "' via email at '" + result.post_tutor_email + "' to arrange a new agreement.", result.std_email, ["Tutorial agreement rejected"], { post_id: post_id }, result.std_avatar);
+        let tutor_notification = await this.create_notification("Agreement rejected", "The student, '" + result.std_name + "' has rejected the agreement for the tutorial, '" + result.post_title + "'. Please get in contact with him/her, via email at '" + result.std_email + "' to arrange a new agreement.", result.post_tutor_email, ["Tutorial agreement rejected"], { post_id: post_id }, result.std_avatar);
 
         const Blockchain = require('./Blockchain');
         const blockchain_controller = new Blockchain(global.blockchain_api_key);
@@ -935,7 +935,6 @@ class database {
   }
 
   update_user(email, update) {
-    console.log("Test");
     console.log(email);
     console.log(update)
     const userSchema = require('../models/users');
@@ -953,7 +952,7 @@ class database {
   }
 
   //TEST THIS
-  find_user_by_email(email) { 
+  find_user_by_email(email) {
     const userSchema = require('../models/users');
 
     const filter = { user_email: email };
@@ -967,6 +966,62 @@ class database {
         });
     });
   }
+
+  //TEST THIS
+  find_tutored_tutorials(email) {
+    const postModel = require('../models/post');
+ 
+    return new Promise((resolve, reject) => {
+      //Find tutorials tutored by user
+      let tutored_tutorials_count;
+
+      let my_open_tutorials = 0;
+      let my_pending_tutorials = 0;
+      let my_ongoing_tutorials = 0;
+      let my_done_tutorials = 0;
+
+      let tutored_tutorials_pending = 0;
+      let tutored_tutorials_ongoing = 0;
+      let tutored_tutorials_done = 0;
+
+      postModel.find({ $or: [{std_email: email}, {post_tutor_email: email}] }).then(results => { 
+        if (results.length) {
+          for (let i = 0; i < results.length; i++) {
+            if (results[i].post_status == "Open" && results[i].std_email == email) {
+              my_open_tutorials++;
+            }
+
+            if (results[i].post_status == "Pending" && results[i].post_tutor_email == email) {
+              tutored_tutorials_pending++;
+            } else if (results[i].post_status == "Pending" && results[i].std_email == email) {
+              my_pending_tutorials++;
+            }
+
+            if (results[i].post_status == "Ongoing" && results[i].post_tutor_email == email) {
+              tutored_tutorials_ongoing++;
+            } else if (results[i].post_status == "Ongoing" && results[i].std_email == email) {
+              my_ongoing_tutorials++;
+            }
+
+            if (results[i].post_status == "Done" && results[i].post_tutor_email == email) {
+              tutored_tutorials_done++;
+            } else if (results[i].post_status == "Done" && results[i].std_email == email) {
+              my_done_tutorials++;
+            }
+          }
+        } else {
+          console.log("Empty :(");
+        }
+
+        tutored_tutorials_count = { my_tutorials: { open_count: my_open_tutorials, pending_count: my_pending_tutorials, ongoing_count: my_ongoing_tutorials, done_count: my_done_tutorials }, my_tutored_tutorials: { pending_count: tutored_tutorials_pending, ongoing_count: tutored_tutorials_ongoing, done_count: tutored_tutorials_done } };
+
+        console.log(tutored_tutorials_count);
+        resolve(tutored_tutorials_count);
+      }).catch((exception) => {
+        resolve({ error: true, response: exception });
+      });
+    });
+  } 
 }
 
 
