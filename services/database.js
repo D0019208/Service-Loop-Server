@@ -294,7 +294,7 @@ class database {
    * that specifies wether the registration was successful or not and the "response" key will be an array that contains the post added and the response for
    * the normal notification added and the tutor notification added 
    */
-  async add_tutorial(request_title, request_description, request_modules, users_email) {
+  async add_tutorial(request_title, request_description, request_modules, users_email, user_avatar) {
 
     const contenxt = this;
     const postModel = require('../models/post');
@@ -305,7 +305,7 @@ class database {
     let users_name = await this.getNameByEmail(users_email);
     newPost.std_name = users_name.users_full_name;
     newPost.std_email = users_email;
-    newPost.std_avatar = "https://d00192082.alwaysdata.net/ServiceLoopServer/resources/images/base_user.png";
+    newPost.std_avatar = user_avatar;
     newPost.post_title = request_title;
 
     newPost.post_posted_on = new Date();
@@ -326,11 +326,11 @@ class database {
             console.log("This post")
             console.log(post);
             //If there is no error, we create a notification for the user stating that their request has been sent
-            let notification_response = await contenxt.create_notification("Tutorial request sent", "You have successfully requested a tutorial for the following modules: " + request_modules.join(', ') + ". A tutor will be in contact with you as soon as possible.", post.std_email, ["Tutorial request sent"], { post_id: post._id, modules: request_modules });
+            let notification_response = await contenxt.create_notification("Tutorial request sent", "You have successfully requested a tutorial for the following modules: " + request_modules.join(', ') + ". A tutor will be in contact with you as soon as possible.", post.std_email, ["Tutorial request sent"], { post_id: post._id, modules: request_modules }, user_avatar);
 
             //If the tutorial request notification succeeds, we create a notification for all tutors that can help with the requested modules 
             if (!notification_response.error) {
-              let tutor_notification_response = await contenxt.create_notification_for_tutors("New tutorial request", post.std_email, post.std_email + " requested a tutorial for the " + request_modules.join(', ') + " modules. Please see the post in context.", ["Tutorial requested"], request_modules, post._id)
+              let tutor_notification_response = await contenxt.create_notification_for_tutors("New tutorial request", post.std_email, post.std_email + " requested a tutorial for the " + request_modules.join(', ') + " modules. Please see the post in context.", ["Tutorial requested"], request_modules, post._id, user_avatar)
 
               //If the notification is sent, we return an object with the "error" key set to false along with a response
               if (!tutor_notification_response.error) {
@@ -381,14 +381,14 @@ class database {
    * @returns {Promise} This Promise will contain an object that contains 2 keys: error and response, the "error" key will be a boolean 
    * that specifies wether the registration was successful or not and the "response" key will contain the notification or a String if there is an error
    */
-  create_notification_for_tutors(notification_title, sender_email, notification_description, notification_tags, notification_modules, post_id) {
+  create_notification_for_tutors(notification_title, sender_email, notification_description, notification_tags, notification_modules, post_id, user_avatar = "https://d00192082.alwaysdata.net/ServiceLoopServer/resources/images/base_user.jpg") {
     const notificationModelSchema = require('../models/notifications');
     const dateformat = require('dateformat');
 
     let notificationModel = new notificationModelSchema();
     let notification_posted_on = new Date();
 
-    notificationModel.notification_avatar = "https://d00192082.alwaysdata.net/ServiceLoopServer/resources/images/base_user.png";
+    notificationModel.notification_avatar = user_avatar;
     notificationModel.notification_title = notification_title;
     notificationModel.notification_desc = notification_description;
     notificationModel.notification_desc_trunc = notification_description.trunc(100);
@@ -422,7 +422,7 @@ class database {
    * @returns {Promise} This Promise will contain an object that contains 2 keys: error and response, the "error" key will be a boolean 
    * that specifies wether the registration was successful or not and the "response" key will contain the notification or a String if there is an error
    */
-  create_notification(notification_title, notification_description, users_email = "", notification_tags, extra_information = null) {
+  create_notification(notification_title, notification_description, users_email = "", notification_tags, extra_information = null, user_avatar = "https://d00192082.alwaysdata.net/ServiceLoopServer/resources/images/base_user.jpg") {
     const notificationModelSchema = require('../models/notifications');
     let notificationModel = new notificationModelSchema();
 
@@ -450,7 +450,7 @@ class database {
 
     notificationModel.notification_desc = notification_description;
     notificationModel.notification_desc_trunc = notification_description.trunc(100);
-    notificationModel.notification_avatar = "https://d00192082.alwaysdata.net/ServiceLoopServer/resources/images/base_user.png";
+    notificationModel.notification_avatar = user_avatar;
     notificationModel.notification_title = notification_title;
 
     notificationModel.notification_posted_on = notification_posted_on;
@@ -678,7 +678,7 @@ class database {
     });
   }
   //TO BE CONTINUED
-  async accept_post(tutor_email, tutor_name, post_id) {
+  async accept_post(tutor_email, tutor_name, post_id, user_avatar) {
     const Blockchain = require('./Blockchain');
     const blockchain_controller = new Blockchain(global.blockchain_api_key);
     const postModel = require('../models/post');
@@ -690,12 +690,12 @@ class database {
     console.log(post_status)
     if (!post_status.error) {
       //Tutor notification
-      let notification_response_tutor = await this.create_notification("Tutorial request accepted", "You have successfully accepted a tutorial. Please fill out the agreement form by clicking the below button or locating this tutorial in 'My tutorials'", tutor_email, ["Tutorial request accepted"], { post_id: post_id });
+      let notification_response_tutor = await this.create_notification("Tutorial request accepted", "You have successfully accepted a tutorial. Please fill out the agreement form by clicking the below button or locating this tutorial in 'My tutorials'", tutor_email, ["Tutorial request accepted"], { post_id: post_id }, user_avatar);
 
       if (!notification_response_tutor.error) {
         return new Promise((resolve, reject) => {
           postModel.findOneAndUpdate(filter, update, { new: true }).then(async result => {
-            let notification_response_student = await this.create_notification("Tutorial accepted", tutor_name + " has accepted to help you with the following tutorial '" + result.post_title + "'. The tutor will be in contact shortly.", result.std_email, ["Tutorial request accepted"], { post_id: post_id });
+            let notification_response_student = await this.create_notification("Tutorial accepted", tutor_name + " has accepted to help you with the following tutorial '" + result.post_title + "'. The tutor will be in contact shortly.", result.std_email, ["Tutorial request accepted"], { post_id: post_id }, user_avatar);
             blockchain_controller.add_transaction_to_blockchain(post_id, { title: "Tutorial accepted", content: "'" + tutor_name + "' has accepted to tutor '" + result.std_name + "' for the following tutorial '" + result.post_title + "'" });
             this.disconnect();
             resolve({ error: false, response: { tutor_notification: notification_response_tutor.response, student_notification: notification_response_student, post: result } });
@@ -953,6 +953,20 @@ class database {
   }
 
   //TEST THIS
+  find_user_by_email(email) { 
+    const userSchema = require('../models/users');
+
+    const filter = { user_email: email };
+
+    return new Promise((resolve, reject) => {
+      userSchema.findOne(filter).then(result => {
+        resolve(result);
+      })
+        .catch((exception) => {
+          resolve({ error: true, response: exception });
+        });
+    });
+  }
 }
 
 

@@ -26,6 +26,8 @@ let create_new_user = async function create_new_user(users_full_name, users_pass
      */
     const users_password_hash = (users_password) => { 
         return new Promise((resolve, reject) => {
+            resolve({error: false, response: "12345", type: "password_hash"});
+            return;
             const bcrypt = require('bcrypt');
             const saltRounds = 10;
 
@@ -178,7 +180,7 @@ let create_new_user = async function create_new_user(users_full_name, users_pass
                     
                     if (!blockchain_user_added.error) {
                         console.log("User updayted")
-                        await database_connection.update_user(users_email, { user_blockchain_api_token: blockchain_user_added.response.ApiToken, user_blockchain_id: blockchain_user_added.response.Id, user_blockchain_identity_name: blockchain_user_added.response.IdentityName });
+                        await database_connection.update_user(users_email, { user_avatar: "https://d00192082.alwaysdata.net/ServiceLoopServer/resources/images/base_user.jpg", user_blockchain_api_token: blockchain_user_added.response.ApiToken, user_blockchain_id: blockchain_user_added.response.Id, user_blockchain_identity_name: blockchain_user_added.response.IdentityName });
                     }
 
                     database_connection.disconnect();

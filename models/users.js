@@ -37,6 +37,10 @@ const UserSchema = new mongoose.Schema({
   {
     type: String
   },
+  user_avatar:
+  {
+    type: String
+  },
   user_blockchain_api_token: {
     type: String
   },

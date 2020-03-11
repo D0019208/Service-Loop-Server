@@ -95,7 +95,7 @@ let create_agreement_pdf = function create_agreement_pdf(tutorial_information, s
 
     //For debugging purposes, if on localhost, we use a different path
     if (global.localhost) {
-        base_path = '';
+        base_path = '.'; 
     } else {
         base_path = path.join(__dirname, '../');
     }
@@ -263,7 +263,7 @@ let create_agreement_pdf = function create_agreement_pdf(tutorial_information, s
         );
         doc.end();
 
-        let writeStream = doc.pipe(fs.createWriteStream(base_path + 'resources/pdfs/agreement_' + post._id + '.pdf'));
+        let writeStream = doc.pipe(fs.createWriteStream(base_path + '/resources/pdfs/agreement_' + post._id + '.pdf'));
 
         writeStream.on('error', function (err) {
             if (err.code === 'ENOENT') {

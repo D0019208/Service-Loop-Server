@@ -5,7 +5,11 @@ const app = express();
 const path = require('path');
 
 global.blockchain_api_key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJBcGlLZXkiOiJBMjBNM1haLTRDSzRNTjUtSkNRMDJNQi00WkFFSFAzIiwiQXBpU2VjcmV0IjoianUyUjRTbHNpMzVPakdjIiwiUGFzc3BocmFzZSI6IjIyNDBjNmEzMjJjMjRlNzgyMmM1YmM3ZTM1Y2RkNWI0IiwiaWF0IjoxNTgyNjM1Mjc2fQ.Hi92qvQhQW4R2Sh2OuUMTNyx4dY69wnyJq6Z49maOsE";
-global.localhost = true;  
+global.sms_app_key = "3i1ivu6elylunazito7y";
+global.sms_api_key = "112a600ad7ce7b679505469dd5079444cbdc1344";
+global.sms_secret_key = "3i5u7ezara9o5yhy6u8a";
+
+global.localhost = true;
 
 var Live_Updates_Controller;
 
@@ -71,24 +75,18 @@ app.post('/check_user_details_correct', async (req, res) => {
 
 app.post('/verify_code', async (req, res) => {
   const validator = require('validator');
+  const SMS = require('./services/SMS');
+  const sms_controller = new SMS(global.sms_app_key, global.sms_api_key, global.sms_secret_key);
 
   const token = req.body.verification_token;
   const code = req.body.verification_code;
   const verification_phone_number = validator.escape(req.body.verification_phone_number).replace(/\s/g, '');
 
-  var ringcaptcha = require('ringcaptcha-nodejs');
-  ringcaptcha.app_key = '3i1ivu6elylunazito7y';//Add Your App Key
-  ringcaptcha.api_key = '112a600ad7ce7b679505469dd5079444cbdc1344'; //Add Your API Key
-  ringcaptcha.secret_key = '3i5u7ezara9o5yhy6u8a'; //Add Your Secret Key
 
-  data = { mobile: verification_phone_number, country_code: '+353', token: token, code: code }
-  ringcaptcha.verifyingPin(data, function (response) {
-    res.json(response);
-    console.log(response);
-    return;
-  });
+  let data = { mobile: verification_phone_number, country_code: '+353', token: token, code: code };
+  let response = await sms_controller.verify_pin(data);
+  res.json(response);
 
-  //res.json(await login.check_user_credentials(req.body.users_email, req.body.users_password));
   return;
 });
 
@@ -110,35 +108,29 @@ app.post('/verify_register_input', async (req, res) => {
 
 app.post('/resend_sms_verification', async (req, res) => {
   const validator = require('validator');
+  const SMS = require('./services/SMS');
+  const sms_controller = new SMS(global.sms_app_key, global.sms_api_key, global.sms_secret_key);
+
   const verification_phone_number = validator.escape(req.body.verification_phone_number).replace(/\s/g, '');
 
-  var ringcaptcha = require('ringcaptcha-nodejs');
-  ringcaptcha.app_key = '3i1ivu6elylunazito7y';//Add Your App Key
-  ringcaptcha.api_key = '112a600ad7ce7b679505469dd5079444cbdc1344'; //Add Your API Key
-  ringcaptcha.secret_key = '3i5u7ezara9o5yhy6u8a'; //Add Your Secret Key
 
-  data = { mobile: verification_phone_number, country_code: '+353', service: 'SMS' }
-  ringcaptcha.reSendPINCode(data, function (response) {
-    res.json(response);
-  });
+  let data = { mobile: verification_phone_number, country_code: '+353', service: 'SMS' }
+  let response = await sms_controller.resend_sms(data);
+  res.json(response);
 
   return;
 });
 
 app.post('/send_sms_verification', async (req, res) => {
   const validator = require('validator');
+  const SMS = require('./services/SMS');
+  const sms_controller = new SMS(global.sms_app_key, global.sms_api_key, global.sms_secret_key);
+
   const verification_phone_number = validator.escape(req.body.verification_phone_number).replace(/\s/g, '');
 
-  var ringcaptcha = require('ringcaptcha-nodejs');
-  ringcaptcha.app_key = '3i1ivu6elylunazito7y';//Add Your App Key
-  ringcaptcha.api_key = '112a600ad7ce7b679505469dd5079444cbdc1344'; //Add Your API Key
-  ringcaptcha.secret_key = '3i5u7ezara9o5yhy6u8a'; //Add Your Secret Key
-
-  data = { mobile: verification_phone_number, country_code: '+353', service: 'SMS' }
-  ringcaptcha.sendingPINCode(data, function (response) {
-    console.log(response);
-    res.json(response);
-  });
+  let data = { mobile: verification_phone_number, country_code: '+353', service: 'SMS' }
+  let response = await sms_controller.send_sms(data);
+  res.json(response);
 
   return;
 });
@@ -154,29 +146,51 @@ app.post('/login_user', async (req, res) => {
   return;
 });
 
-app.post('/verify_token', (req, res) => {
+app.post('/verify_token', async (req, res) => {
   const jwt = require('jsonwebtoken');
   let token = req.body.token;
+  let email = req.body.email;
 
   try {
     //process.env.JWT_SECRET
     let JWT_SECRET = 'addjsonwebtokensecretherelikeQuiscustodietipsoscustodes';
-    let decoded = jwt.verify(token, JWT_SECRET);
+    //let decoded = jwt.verify(token, JWT_SECRET);
 
-    res.json("Session valid");
+    const database = require('./services/database');
+
+    const database_connection = new database("Tutum_Nichita", "EajHKuViBCaL62Sj", "service_loop");
+    let db_con_response = await database_connection.connect();
+    let user_response = await database_connection.find_user_by_email(email);
+    database_connection.disconnect();
+
+    res.json({ session_response: "Session valid", user: user_response });
     return;
   } catch (err) {
     if (err.message === "jwt expired") {
-      res.json("Session timeout");
+      res.json({ session_response: "Session valid", user: user_response });
       return;
     } else if (err.message === "jwt malformed") {
-      res.json("Session corrupted");
+      res.json({ session_response: "Session corrupted", user: user_response });
       return;
     } else {
-      res.json("Unspecified error occured");
+      res.json(err);
       return;
     }
   }
+});
+
+app.post('/localhost', async (req, res) => {
+  let email = req.body.email;
+
+  const database = require('./services/database');
+
+  const database_connection = new database("Tutum_Nichita", "EajHKuViBCaL62Sj", "service_loop");
+  let db_con_response = await database_connection.connect();
+  let user_response = await database_connection.find_user_by_email(email);
+  database_connection.disconnect();
+
+  res.json({ session_response: "Session valid", user: user_response });
+  return; 
 });
 
 app.post('/register', async (req, res) => {
@@ -233,7 +247,7 @@ app.post('/request_tutorial', async (req, res) => {
     return;
   }
 
-  res.json(await database_connection.add_tutorial(req.body.request_title, req.body.request_description, req.body.request_modules, req.body.users_email));
+  res.json(await database_connection.add_tutorial(req.body.request_title, req.body.request_description, req.body.request_modules, req.body.users_email, req.body.user_avatar));
   return;
 });
 
@@ -284,7 +298,7 @@ app.post('/post_accepted', async (req, res) => {
   const database_connection = new database("Tutum_Nichita", "EajHKuViBCaL62Sj", "service_loop");
   let db_con_response = await database_connection.connect();
 
-  res.json(await database_connection.accept_post(req.body.tutor_email, req.body.tutor_name, req.body.post_id));
+  res.json(await database_connection.accept_post(req.body.tutor_email, req.body.tutor_name, req.body.post_id, req.body.user_avatar));
   return;
 });
 
@@ -370,7 +384,7 @@ app.post('/validate_digital_signatures', async (req, res) => {
 
   res.json(await verify_digital_signatures_handler.verify_digital_signatures(database_connection, req.body));
   return;
-});  
+});
 
 app.post('/load_blockchain_content', async (req, res) => {
   const Blockchain = require('./services/Blockchain');
@@ -383,24 +397,42 @@ app.post('/load_blockchain_content', async (req, res) => {
   return;
 });
 
-// var server = app.listen(3001, async function () {
-//   console.log('App started!');
+//TEST THIS
+app.post('/update_avatar', async (req, res) => {
+  const database = require('./services/database');
+  const avatar = require('./services/update_avatar');
 
-//   // let database = require('./services/database')
+  const database_connection = new database("Tutum_Nichita", "EajHKuViBCaL62Sj", "service_loop");
+  let db_con_response = await database_connection.connect();
 
-//   // const database_connection = new database("Tutum_Nichita", "EajHKuViBCaL62Sj", "service_loop");
-//   // let db_con_response = await database_connection.connect();
+  let response = await avatar.update_avatar(database_connection, req.body.email, req.body.image);
 
-//   // //DELETE EVERYTHING
-//   // await database_connection.reset();
+  res.json(response);
+  return;
+});
 
-//   Live_Updates_Controller = new Live_Updates(server, app);
-//   Live_Updates_Controller.connect(); 
-// });
-
-var server = app.listen(process.env.ALWAYSDATA_HTTPD_PORT, process.env.ALWAYSDATA_HTTPD_IP, async function () {
+var server = app.listen(3001, async function () {
   console.log('App started!');
+
+   let database = require('./services/database')
+
+   const database_connection = new database("Tutum_Nichita", "EajHKuViBCaL62Sj", "service_loop");
+   let db_con_response = await database_connection.connect();
+
+   //DELETE EVERYTHING
+   //await database_connection.reset();
+
+  //  const register_new_user = require('./services/registration/register');
+  // const validator = require('validator');
+  //  await register_new_user.create_new_user(validator.escape("John Doe"), "12345aA@", "12345aA@", validator.escape("D00192082@student.dkit.ie"), validator.escape("0899854571"), database_connection);
 
   Live_Updates_Controller = new Live_Updates(server, app);
   Live_Updates_Controller.connect();
 });
+
+// var server = app.listen(process.env.ALWAYSDATA_HTTPD_PORT, process.env.ALWAYSDATA_HTTPD_IP, async function () {
+//   console.log('App started!'); 
+
+//   Live_Updates_Controller = new Live_Updates(server, app);
+//   Live_Updates_Controller.connect();
+// });
