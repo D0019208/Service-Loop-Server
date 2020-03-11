@@ -26,9 +26,11 @@ let offer_agreement = async function offer_agreement(database_connection, post_i
 
     let signed_pdf_path = await signature_controller.digitally_sign_pdf(pdf_path_and_name.pdf_path, { tutor: digital_certificate });
     let update_post_agremeent_url_response = await database_connection.update_post_agreement_url(post_id, signed_pdf_path.response, tutor_signature);
+    blockchain_controller.add_transaction_to_blockchain(post_id, {title: "Agreement generated", content: "An agremeent for the tutorial, '" + update_post_agremeent_url_response.post_title + "' has been offered by the tutor, '" + update_post_agremeent_url_response.post_tutor_name + "'. The student must now accept or reject the agreement."});
 
     //Send 2 emails 
     functions.send_email_with_agreement({ student: { student_name: update_post_agreement_status_response.std_name, student_email: update_post_agreement_status_response.std_email, student_email_subject: 'NOREPLY - Agreement created successfully', student_email_body: "Your tutor has just created an agreement, please review it and either accept or decline it in the app." }, tutor: { tutor_name: update_post_agremeent_url_response.post_tutor_name, tutor_email: update_post_agreement_status_response.post_tutor_email, tutor_email_subject: 'NOREPLY - New agreement offer from Service Loop', tutor_email_body: "Agreement creation has been successful, now wait for the student to accept or reject the agreement" }, agreement_url: signed_pdf_path.response, agreement_name: signed_pdf_path.response.substring(15) });
+    blockchain_controller.add_transaction_to_blockchain(post_id, {title: "Draft agreement email sent", content: "The email for the initial draft of the agreement '" + update_post_agremeent_url_response.post_title + "' has been sent to both the student, '" + update_post_agremeent_url_response.post_tutor_name + "' and the tutor '" + update_post_agremeent_url_response.std_name + "'."});
 
     //Add transaction to blockchain
     console.log("twsd")
@@ -36,8 +38,6 @@ console.log(update_post_agreement_status_response)
     let notification_response_tutor = await database_connection.create_notification("Agreement created successfully", "You have successfully created an agreement for the tutorial '" + update_post_agremeent_url_response.post_title + "'. Please wait for " + update_post_agremeent_url_response.std_name + " to accept or reject the agreement to proceed with the tutorial. Click the button below to see the agreement.", update_post_agreement_status_response.post_tutor_email, ["Tutorial agreement offered"], { post_id: post_id, post_modules: update_post_agreement_status_response.post_modules}, tutor_avatar);
     let notification_response_student = await database_connection.create_notification("New agreement for the '" + update_post_agremeent_url_response.post_title + "' tutorial", update_post_agremeent_url_response.post_tutor_name + " has created an agreement for the '" + update_post_agremeent_url_response.post_title + "' tutorial. Please view this agreement in context by clicking the button below and either accept or reject the agreement to proceed with the process.", update_post_agreement_status_response.std_email, ["Tutorial agreement offered"], { post_id: post_id, post_modules: update_post_agreement_status_response.post_modules }, tutor_avatar);
     database_connection.disconnect();
-
-    blockchain_controller.add_transaction_to_blockchain(post_id, {title: "Agreement generated", content: "An agremeent for the tutorial, '" + update_post_agremeent_url_response.post_title + "' has been offered by the tutor, '" + update_post_agremeent_url_response.post_tutor_name + "'. The student must now accept or reject the agreement."});
 
     return { error: false, response: "Agreement sent successfully", updated_tutorial: update_post_agremeent_url_response, tutor_notification: notification_response_tutor, student_notification: notification_response_student };
 }
