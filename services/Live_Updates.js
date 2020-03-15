@@ -21,6 +21,7 @@ class Live_Updates {
 
                 for (let i = 0; i < this.users_connected.length; i++) {
                     if (socket.handshake.query.email === this.users_connected[i].email) {
+                        this.users_connected[i].email = socket.handshake.query.email;
                         this.users_connected[i].socket_id = socket.id;
                         this.users_connected[i].modules = JSON.parse(socket.handshake.query.modules);
                     }
@@ -101,38 +102,41 @@ class Live_Updates {
     }
 
     send_tutorial(socket, data) {
+        const Push_Notifications = require('./Push_Notifications');  
+        const push_controller = new Push_Notifications("c08fd8bd-bfbf-4dd3-bc07-61d214842ccd", "MGMxYzc3NjEtZjFkOC00MmIwLTkyYmMtMzVmMjgzZDg4MzM2"); 
+
         let elegible_users = [];
+        console.log("Push data")
         console.log(data);
         for (let i = 0; i < this.users_connected.length; i++) {
             for (let j = 0; j < this.users_connected[i].modules.length; j++) {
-                if (this.users_connected[i].modules[j] === data.response[0].post_modules[0]) {
+                if (this.users_connected[i].modules[j] === data.response[0].post_modules[0] && this.users_connected[i].email !== data.response[0].std_email) {
                     elegible_users.push(this.users_connected[i]);
                 }
             }
         }
 
         for (let i = 0; i < elegible_users.length; i++) {
+            console.log(elegible_users[i].email)
             //socket.emit('news', { hello: elegible_users, socket_id: elegible_users[i].socket_id });
+            push_controller.push("New " + data.response[0].post_modules[0] + " tutorial", "A new " + data.response[0].post_modules[0] + " tutorial has been created. Please check the forum.", elegible_users[i].email, "New tutorial request", data.response[2], data.response[0]);
             socket.to(elegible_users[i].socket_id).emit("new_tutorial_request", { response: data.response[0] });
         }
     }
 
     sendTutorialAcceptedNotification(socket, data) {
-        console.log("Unique 2")
-        console.log(this.users_connected)
+        console.log("Test acceptedd")
         console.log(data);
 
         for (let i = 0; i < this.users_connected.length; i++) {
             if (this.users_connected[i].email === data.the_notification.response.std_email) {
-                console.log("work")
                 socket.to(this.users_connected[i].socket_id).emit("add_tutorial_request_accepted_notification", { response: data.the_notification.response, post: data.the_post });
             }
         }
     }
 
     sendAgreementGeneratedNotification(socket, data) {
-        console.log("Unique 2")
-        console.log(this.users_connected)
+        console.log("Agreement generated!")
         console.log(data);
 
         for (let i = 0; i < this.users_connected.length; i++) {

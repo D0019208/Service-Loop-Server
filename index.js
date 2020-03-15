@@ -3,6 +3,10 @@ const cors = require('cors');
 const Live_Updates = require('./services/Live_Updates');
 const app = express();
 const path = require('path');
+
+const Push_Notifications = require('./services/Push_Notifications'); 
+const push_controller = new Push_Notifications("c08fd8bd-bfbf-4dd3-bc07-61d214842ccd", "MGMxYzc3NjEtZjFkOC00MmIwLTkyYmMtMzVmMjgzZDg4MzM2");
+
 var server;
 
 global.blockchain_api_key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJBcGlLZXkiOiJBMjBNM1haLTRDSzRNTjUtSkNRMDJNQi00WkFFSFAzIiwiQXBpU2VjcmV0IjoianUyUjRTbHNpMzVPakdjIiwiUGFzc3BocmFzZSI6IjIyNDBjNmEzMjJjMjRlNzgyMmM1YmM3ZTM1Y2RkNWI0IiwiaWF0IjoxNTgyNjM1Mjc2fQ.Hi92qvQhQW4R2Sh2OuUMTNyx4dY69wnyJq6Z49maOsE";
@@ -10,7 +14,7 @@ global.sms_app_key = "3i1ivu6elylunazito7y";
 global.sms_api_key = "112a600ad7ce7b679505469dd5079444cbdc1344";
 global.sms_secret_key = "3i5u7ezara9o5yhy6u8a";
 
-global.localhost = true;
+global.localhost = false;
 
 var Live_Updates_Controller;
 
@@ -429,16 +433,29 @@ app.post('/edit_skills', async (req, res) => {
   return;
 });
 
+app.post('/push_notification', async (req, res) => {
+  let response;
+
+  try {
+    response = await push_controller.push(req.body.title, req.body.body, req.body.to, req.body.key, req.body.notification, req.body.post);
+  } catch(ex) {
+    response = ex;
+  }
+ 
+  res.json(response);
+  return;
+});
+
 if (global.localhost) {
   server = app.listen(3001, async function () {
     console.log('App started!');
 
-    let database = require('./services/database')
+    //let database = require('./services/database')
 
-    const database_connection = new database("Tutum_Nichita", "EajHKuViBCaL62Sj", "service_loop");
+    //const database_connection = new database("Tutum_Nichita", "EajHKuViBCaL62Sj", "service_loop");
     //let db_con_response = await database_connection.connect();
 
-    //DELETE EVERYTHING
+    ////DELETE EVERYTHING
     //await database_connection.reset();
 
     //const register_new_user = require('./services/registration/register');
