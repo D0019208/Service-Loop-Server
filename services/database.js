@@ -690,13 +690,13 @@ class database {
     console.log(post_status)
     if (!post_status.error) {
       //Tutor notification
-      let notification_response_tutor = await this.create_notification("Tutorial request accepted", "You have successfully accepted a tutorial. Please fill out the agreement form by clicking the below button or locating this tutorial in 'My tutorials'", tutor_email, ["Tutorial request accepted"], { post_id: post_id }, user_avatar);
+      let notification_response_tutor = await this.create_notification("Tutorial request accepted", "You have accepted a tutorial.\nPlease fill out the agreement form by clicking the below button or locating this tutorial in 'My tutorials'", tutor_email, ["Tutorial request accepted"], { post_id: post_id }, user_avatar);
 
       if (!notification_response_tutor.error) {
         return new Promise((resolve, reject) => {
           postModel.findOneAndUpdate(filter, update, { new: true }).then(async result => {
-            let notification_response_student = await this.create_notification("Tutorial accepted", tutor_name + " has accepted to help you with the following tutorial '" + result.post_title + "'. The tutor will be in contact shortly.", result.std_email, ["Tutorial request accepted"], { post_id: post_id }, user_avatar);
-            blockchain_controller.add_transaction_to_blockchain(post_id, { title: "Tutorial accepted", content: "'" + tutor_name + "' has accepted to tutor '" + result.std_name + "' for the following tutorial '" + result.post_title + "'" });
+            let notification_response_student = await this.create_notification("Tutorial accepted", tutor_name + " has accepted your request '" + result.post_title + "'.\nThe tutor will contact you via email.", result.std_email, ["Tutorial request accepted"], { post_id: post_id }, user_avatar);
+            blockchain_controller.add_transaction_to_blockchain(post_id, { title: "Tutorial accepted", content: "'" + tutor_name + "' has accepted to tutor '" + result.std_name + "' for the tutorial '" + result.post_title + "'" });
             this.disconnect();
             resolve({ error: false, response: { tutor_notification: notification_response_tutor.response, student_notification: notification_response_student, post: result } });
           });

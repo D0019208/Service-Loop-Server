@@ -35,11 +35,11 @@ let offer_agreement = async function offer_agreement(database_connection, post_i
     //Add transaction to blockchain
     console.log("twsd")
 console.log(update_post_agreement_status_response)
-    let notification_response_tutor = await database_connection.create_notification("Agreement created successfully", "You have successfully created an agreement for the tutorial '" + update_post_agremeent_url_response.post_title + "'. Please wait for " + update_post_agremeent_url_response.std_name + " to accept or reject the agreement to proceed with the tutorial. Click the button below to see the agreement.", update_post_agreement_status_response.post_tutor_email, ["Tutorial agreement offered"], { post_id: post_id, post_modules: update_post_agreement_status_response.post_modules}, tutor_avatar);
-    let notification_response_student = await database_connection.create_notification("New agreement for the '" + update_post_agremeent_url_response.post_title + "' tutorial", update_post_agremeent_url_response.post_tutor_name + " has created an agreement for the '" + update_post_agremeent_url_response.post_title + "' tutorial. Please view this agreement in context by clicking the button below and either accept or reject the agreement to proceed with the process.", update_post_agreement_status_response.std_email, ["Tutorial agreement offered"], { post_id: post_id, post_modules: update_post_agreement_status_response.post_modules }, tutor_avatar);
+    let notification_response_tutor = await database_connection.create_notification("Agreement created", "You have created an agreement for the tutorial '" + update_post_agremeent_url_response.post_title + "'.\n" + update_post_agremeent_url_response.std_name + " will accept or reject the agreement. Click the button below to see the agreement.", update_post_agreement_status_response.post_tutor_email, ["Tutorial agreement offered"], { post_id: post_id, post_modules: update_post_agreement_status_response.post_modules}, tutor_avatar);
+    let notification_response_student = await database_connection.create_notification("New agreement for the '" + update_post_agremeent_url_response.post_title + "' tutorial", update_post_agremeent_url_response.post_tutor_name + " has created an agreement.\nPlease accept or reject the agreement by opening tutorial below.", update_post_agreement_status_response.std_email, ["Tutorial agreement offered"], { post_id: post_id, post_modules: update_post_agreement_status_response.post_modules }, tutor_avatar);
     database_connection.disconnect();
 
     return { error: false, response: "Agreement sent successfully", updated_tutorial: update_post_agremeent_url_response, tutor_notification: notification_response_tutor, student_notification: notification_response_student };
 }
 
-exports.offer_agreement = offer_agreement;
+exports.offer_agreement = offer_agreement; 
