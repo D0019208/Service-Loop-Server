@@ -1,4 +1,4 @@
-let offer_agreement = async function offer_agreement(database_connection, post_id, tutorial_date, tutorial_time, tutorial_room, tutor_signature, tutor_avatar) {
+let offer_agreement = async function offer_agreement(database_connection, post_id, tutorial_date, tutorial_time, tutor_signature, tutor_avatar) {
     //Declare all libraries we need
     const Digital_Signature = require('./Digital_Signature'); 
     const Blockchain = require('./Blockchain');
@@ -7,7 +7,7 @@ let offer_agreement = async function offer_agreement(database_connection, post_i
     const functions = require('./functions');
 
     //Update
-    let update_post_agreement_status_response = await database_connection.update_post_agreement_status(post_id, { post_agreement_offered: true, tutorial_date: tutorial_date, tutorial_time: tutorial_time, tutorial_room: tutorial_room });
+    let update_post_agreement_status_response = await database_connection.update_post_agreement_status(post_id, { post_agreement_offered: true, tutorial_date: tutorial_date, tutorial_time: tutorial_time, tutorial_room: 'P1204' });
 
     if(update_post_agreement_status_response.error) {
         return update_post_agreement_status_response;
@@ -18,7 +18,7 @@ let offer_agreement = async function offer_agreement(database_connection, post_i
     let digital_certificate = await database_connection.get_digital_certificate_details(update_post_agreement_status_response.post_tutor_email);
 
     //return {t: digital_certificate, l: update_post_agreement_status_response};
-    let pdf_path_and_name = await functions.create_agreement_pdf({tutorial_date: tutorial_date, tutorial_time: tutorial_time, tutorial_room: tutorial_room}, {tutor_signature: tutor_signature, student_signature: null}, update_post_agreement_status_response);
+    let pdf_path_and_name = await functions.create_agreement_pdf({tutorial_date: tutorial_date, tutorial_time: tutorial_time}, {tutor_signature: tutor_signature, student_signature: null}, update_post_agreement_status_response);
 
     console.log(pdf_path_and_name);
 

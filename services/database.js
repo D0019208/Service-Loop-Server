@@ -843,25 +843,6 @@ class database {
   //   });
   // }
 
-  //TEST THIS
-  is_room_booked(post_id, tutorial_room) {
-    console.log(post_id);
-    const postModel = require('../models/post');
-
-    const filter = { post_status: { "$in": ["In negotiation", "Ongoing"] }, tutorial_room: tutorial_room };
-
-    return new Promise((resolve, reject) => {
-      postModel.find(filter).then(result => {
-        console.log(result)
-        if (result.length) {
-          resolve(true);
-        } else {
-          resolve(false)
-        }
-      })
-    });
-  }
-
   update_post_agreement_status(post_id, update_object, room_taken = false) {
     console.log(post_id);
     const postModel = require('../models/post');
@@ -870,23 +851,9 @@ class database {
     const update = update_object;
 
     return new Promise(async (resolve, reject) => {
-      let is_room_booked;
-
-      if (!room_taken) {
-        is_room_booked = await this.is_room_booked(post_id, update_object.tutorial_room);
-      } else {
-        is_room_booked = false;
-      }
-
-
-      if (!is_room_booked) {
-        //resolve({error: false, response: "ddd"})
-        postModel.findOneAndUpdate(filter, update).then(result => {
-          resolve({ error: false, response: result });
-        })
-      } else {
-        resolve({ error: true, response: 'Room ' + update_object.tutorial_room + " is already booked, please choose another room." })
-      }
+      postModel.findOneAndUpdate(filter, update).then(result => {
+        resolve({ error: false, response: result });
+      });
     });
   }
 
@@ -952,6 +919,38 @@ class database {
   }
 
   //TEST THIS
+  begin_tutorial(post_id) {
+    const postModel = require('../models/post');
+
+    const filter = { _id: post_id };
+
+    return new Promise((resolve, reject) => {
+      postModel.findOneAndUpdate(filter, { tutorial_started: true }, { new: true }).then(result => {
+        resolve(result);
+      })
+        .catch((exception) => {
+          resolve({ error: true, response: exception });
+        });
+    });
+  }
+
+  //TEST THIS
+  finish_tutorial(post_id) {
+    const postModel = require('../models/post');
+
+    const filter = { _id: post_id };
+
+    return new Promise((resolve, reject) => {
+      postModel.findOneAndUpdate(filter, { post_status: "Done" }, { new: true }).then(result => {
+        resolve(result);
+      })
+        .catch((exception) => {
+          resolve({ error: true, response: exception });
+        });
+    });
+  }
+
+  //TEST THIS
   find_user_by_email(email) {
     const userSchema = require('../models/users');
 
@@ -970,7 +969,7 @@ class database {
   //TEST THIS
   find_tutored_tutorials(email) {
     const postModel = require('../models/post');
- 
+
     return new Promise((resolve, reject) => {
       //Find tutorials tutored by user
       let tutored_tutorials_count;
@@ -984,7 +983,7 @@ class database {
       let tutored_tutorials_ongoing = 0;
       let tutored_tutorials_done = 0;
 
-      postModel.find({ $or: [{std_email: email}, {post_tutor_email: email}] }).then(results => { 
+      postModel.find({ $or: [{ std_email: email }, { post_tutor_email: email }] }).then(results => {
         if (results.length) {
           for (let i = 0; i < results.length; i++) {
             if (results[i].post_status == "Open" && results[i].std_email == email) {
@@ -1021,7 +1020,36 @@ class database {
         resolve({ error: true, response: exception });
       });
     });
-  } 
+  }
+
+  async delete_tutorial(post_id) {
+    const postModel = require('../models/post');
+
+    return new Promise((resolve, reject) => {
+      postModel.deleteOne({ _id: post_id }).then(async (result) => {
+        resolve("Deleted");
+      });
+    });
+  }
+
+  get_avatar(email, is_tutor) {
+    const postModel = require('../models/post');
+
+    let filter;
+
+    if (is_tutor) {
+      filter = { std_email: email };
+    } else {
+      filter = { post_tutor_email: email };
+    }
+
+    return new Promise((resolve, reject) => {
+      postModel.find(filter).then(result => {
+        console.log(result)
+        resolve(result);
+      });
+    });
+  }
 }
 
 

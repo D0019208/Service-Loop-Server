@@ -26,8 +26,8 @@ let create_new_user = async function create_new_user(users_full_name, users_pass
      */
     const users_password_hash = (users_password) => { 
         return new Promise((resolve, reject) => {
-            resolve({error: false, response: "12345", type: "password_hash"});
-            return;
+            // resolve({error: false, response: "12345", type: "password_hash"});
+            // return;
             const bcrypt = require('bcrypt');
             const saltRounds = 10;
 

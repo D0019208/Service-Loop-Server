@@ -59,6 +59,11 @@ const PostSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  tutorial_started: 
+  {
+    type: Boolean,
+    default: false
+  },
   post_agreement_url:
   {
     type: String

@@ -4,7 +4,7 @@ const Live_Updates = require('./services/Live_Updates');
 const app = express();
 const path = require('path');
 
-const Push_Notifications = require('./services/Push_Notifications'); 
+const Push_Notifications = require('./services/Push_Notifications');
 const push_controller = new Push_Notifications("c08fd8bd-bfbf-4dd3-bc07-61d214842ccd", "MGMxYzc3NjEtZjFkOC00MmIwLTkyYmMtMzVmMjgzZDg4MzM2");
 
 var server;
@@ -159,7 +159,6 @@ app.post('/verify_token', async (req, res) => {
   try {
     //process.env.JWT_SECRET
     let JWT_SECRET = 'addjsonwebtokensecretherelikeQuiscustodietipsoscustodes';
-    //let decoded = jwt.verify(token, JWT_SECRET);
 
     const database = require('./services/database');
 
@@ -167,17 +166,18 @@ app.post('/verify_token', async (req, res) => {
     let db_con_response = await database_connection.connect();
     let user_response = await database_connection.find_user_by_email(email);
     let tutorials_count = await database_connection.find_tutored_tutorials(email);
-
     database_connection.disconnect();
+
+    let decoded = jwt.verify(token, JWT_SECRET);
 
     res.json({ session_response: "Session valid", user: user_response, tutorials_count: tutorials_count });
     return;
   } catch (err) {
     if (err.message === "jwt expired") {
-      res.json({ session_response: "Session valid", user: user_response });
+      res.json({ session_response: "Session valid" });
       return;
     } else if (err.message === "jwt malformed") {
-      res.json({ session_response: "Session corrupted", user: user_response });
+      res.json({ session_response: "Session corrupted" });
       return;
     } else {
       res.json(err);
@@ -194,7 +194,7 @@ app.post('/localhost', async (req, res) => {
   const database_connection = new database("Tutum_Nichita", "EajHKuViBCaL62Sj", "service_loop");
   let db_con_response = await database_connection.connect();
   let user_response = await database_connection.find_user_by_email(email);
-  
+
   let tutorials_count = await database_connection.find_tutored_tutorials(email);
   database_connection.disconnect();
 
@@ -345,7 +345,7 @@ app.post('/get_all_tutor_tutorials', async (req, res) => {
 
 //TEST THIS
 app.post('/offer_agreement', async (req, res) => {
-  if (req.body.tutorial_room == "" || req.body.tutorial_room == "" || req.body.tutor_signature == "") {
+  if (req.body.tutor_signature == "") {
     res.json({ error: true, response: "Please fill in all fields before proceeding." });
   }
 
@@ -355,7 +355,7 @@ app.post('/offer_agreement', async (req, res) => {
   const database_connection = new database("Tutum_Nichita", "EajHKuViBCaL62Sj", "service_loop");
   let db_con_response = await database_connection.connect();
 
-  res.json(await offer_agreement.offer_agreement(database_connection, req.body.tutorial_id, req.body.tutorial_date.substring(0, 10), req.body.tutorial_time, req.body.tutorial_room, req.body.tutor_signature, req.body.tutor_avatar));
+  res.json(await offer_agreement.offer_agreement(database_connection, req.body.tutorial_id, req.body.tutorial_date.substring(0, 10), req.body.tutorial_time, req.body.tutor_signature, req.body.tutor_avatar));
   return;
 });
 
@@ -422,12 +422,12 @@ app.post('/update_avatar', async (req, res) => {
 
 //TEST THIS
 app.post('/edit_skills', async (req, res) => {
-  const database = require('./services/database'); 
+  const database = require('./services/database');
 
   const database_connection = new database("Tutum_Nichita", "EajHKuViBCaL62Sj", "service_loop");
   let db_con_response = await database_connection.connect();
 
-  let response = await database_connection.update_user(req.body.users_email, {user_modules: req.body.skills});
+  let response = await database_connection.update_user(req.body.users_email, { user_modules: req.body.skills });
 
   res.json(response);
   return;
@@ -438,11 +438,96 @@ app.post('/push_notification', async (req, res) => {
 
   try {
     response = await push_controller.push(req.body.title, req.body.body, req.body.to, req.body.key, req.body.notification, req.body.post);
-  } catch(ex) {
+  } catch (ex) {
     response = ex;
   }
- 
+
   res.json(response);
+  return;
+});
+
+app.post('/cancel_tutorial', async (req, res) => {
+  const database = require('./services/database');
+  const Blockchain = require('./services/Blockchain');
+  const blockchain_controller = new Blockchain(global.blockchain_api_key);
+
+  const database_connection = new database("Tutum_Nichita", "EajHKuViBCaL62Sj", "service_loop");
+  let db_con_response = await database_connection.connect();
+  let tutorial = req.body.tutorial;
+
+  //Remove tutorial
+  let response = await database_connection.delete_tutorial(req.body.tutorial_id);
+
+  console.log(tutorial);
+  console.log(tutorial.post_tutor_email)
+
+  let student_notification = await database_connection.create_notification("Tutorial canceled", "The tutorial '" + tutorial.post_title + "' has been cancelled.", tutorial.std_email, ["Tutorial cancelled"], { post_id: req.body.tutorial_id }, req.body.avatar);
+  let tutor_notification;
+  let tutor_exists = false;
+
+  if (typeof tutorial.post_tutor_email !== "undefined") {
+    tutor_exists = true;
+
+    let tutor_avatar = await database_connection.find_id_by_email(tutorial.post_tutor_email);
+    tutor_notification = await database_connection.create_notification("Tutorial canceled", "The tutorial '" + tutorial.post_title + "' has been cancelled.", tutorial.post_tutor_email, ["Tutorial cancelled"], { post_id: req.body.tutorial_id }, tutor_avatar.response.user_avatar);
+  }
+
+  //get_avatar(email, is_tutor);
+
+  //let new_tutorial = await database_connection.add_tutorial(req.body.tutorial.post_title, req.body.tutorial.post_desc, req.body.tutorial.post_modules, req.body.tutorial.std_email, req.body.tutorial.std_avatar);
+
+  blockchain_controller.add_transaction_to_blockchain(req.body.tutorial_id, { title: "Tutorial canceled", content: "The tutorial '" + tutorial.post_title + "' has been canceled." });
+
+  res.json({ student_notification: student_notification, tutor_notification: tutor_notification, tutor_exists: tutor_exists });
+  return;
+});
+
+app.post('/begin_tutorial', async (req, res) => {
+  const database = require('./services/database');
+  const Blockchain = require('./services/Blockchain');
+  const blockchain_controller = new Blockchain(global.blockchain_api_key);
+
+  const database_connection = new database("Tutum_Nichita", "EajHKuViBCaL62Sj", "service_loop");
+  let db_con_response = await database_connection.connect();
+
+  //Begin tutorial
+  let tutorial = await database_connection.begin_tutorial(req.body.tutorial_id);
+
+  //CHECK DKIT LDAP SERVERS!!!!
+  let student_number = req.body.student_number;
+
+  let student_notification = await database_connection.create_notification("Tutorial started", "The tutorial '" + tutorial.post_title + "' has been started! Goodluck!", tutorial.std_email, ["Tutorial started"], { post_id: req.body.tutorial_id }, req.body.avatar);
+
+  //Get tutors avatar
+  let tutor_avatar = await database_connection.find_id_by_email(tutorial.post_tutor_email);
+  let tutor_notification = await database_connection.create_notification("Tutorial started", "The tutorial '" + tutorial.post_title + "' has been started! Goodluck!", tutorial.post_tutor_email, ["Tutorial started"], { post_id: req.body.tutorial_id }, tutor_avatar.response.user_avatar);
+  
+  blockchain_controller.add_transaction_to_blockchain(req.body.tutorial_id, { title: "Tutorial started", content: "The tutorial '" + tutorial.post_title + "' has just been started by the tutor." });
+
+  res.json({ updated_tutorial: tutorial, student_notification: student_notification, tutor_notification: tutor_notification });
+  return;
+});
+
+app.post('/finish_tutorial', async (req, res) => {
+  const database = require('./services/database');
+  const Blockchain = require('./services/Blockchain');
+  const blockchain_controller = new Blockchain(global.blockchain_api_key);
+
+  const database_connection = new database("Tutum_Nichita", "EajHKuViBCaL62Sj", "service_loop");
+  let db_con_response = await database_connection.connect();
+
+  //Begin tutorial
+  let tutorial = await database_connection.finish_tutorial(req.body.tutorial_id);
+
+  let student_notification = await database_connection.create_notification("Tutorial finished", "The tutorial '" + tutorial.post_title + "' has been completed! Thank you for using Student Loop!", tutorial.std_email, ["Tutorial finished"], { post_id: req.body.tutorial_id }, req.body.avatar);
+
+  //Get tutors avatar
+  let tutor_avatar = await database_connection.find_id_by_email(tutorial.post_tutor_email);
+  let tutor_notification = await database_connection.create_notification("Tutorial finished", "The tutorial '" + tutorial.post_title + "' has been completed! Thank you for using Student Loop!", tutorial.post_tutor_email, ["Tutorial finished"], { post_id: req.body.tutorial_id }, tutor_avatar.response.user_avatar);
+  
+  blockchain_controller.add_transaction_to_blockchain(req.body.tutorial_id, { title: "Tutorial started", content: "The tutorial '" + tutorial.post_title + "' has just been started by the tutor." });
+
+  res.json({ updated_tutorial: tutorial, student_notification: student_notification, tutor_notification: tutor_notification });
   return;
 });
 
@@ -450,17 +535,13 @@ if (global.localhost) {
   server = app.listen(3001, async function () {
     console.log('App started!');
 
-    //let database = require('./services/database')
+    // let database = require('./services/database')
 
-    //const database_connection = new database("Tutum_Nichita", "EajHKuViBCaL62Sj", "service_loop");
-    //let db_con_response = await database_connection.connect();
+    // const database_connection = new database("Tutum_Nichita", "EajHKuViBCaL62Sj", "service_loop");
+    // let db_con_response = await database_connection.connect();
 
-    ////DELETE EVERYTHING
-    //await database_connection.reset();
-
-    //const register_new_user = require('./services/registration/register');
-    //const validator = require('validator');
-    //await register_new_user.create_new_user(validator.escape("John Doe"), "12345aA@", "12345aA@", validator.escape("D00192082@student.dkit.ie"), validator.escape("0899854571"), database_connection);
+    // //DELETE EVERYTHING
+    // await database_connection.reset();
 
     Live_Updates_Controller = new Live_Updates(server, app);
     Live_Updates_Controller.connect();
@@ -468,6 +549,14 @@ if (global.localhost) {
 } else {
   server = app.listen(process.env.ALWAYSDATA_HTTPD_PORT, process.env.ALWAYSDATA_HTTPD_IP, async function () {
     console.log('App started!');
+
+    // let database = require('./services/database')
+
+    // const database_connection = new database("Tutum_Nichita", "EajHKuViBCaL62Sj", "service_loop");
+    // let db_con_response = await database_connection.connect();
+
+    // //DELETE EVERYTHING
+    // await database_connection.reset();
 
     Live_Updates_Controller = new Live_Updates(server, app);
     Live_Updates_Controller.connect();

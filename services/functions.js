@@ -178,7 +178,7 @@ let create_agreement_pdf = function create_agreement_pdf(tutorial_information, s
             align: 'left'
         });
         doc.moveDown();
-        doc.text(" Tuturoial will take place in " + tutorial_information.tutorial_room + " of Carrols Building on the " + tutorial_information.tutorial_date + " at " + tutorial_information.tutorial_time + " (24hr)", {
+        doc.text(" Tuturoial will take place in P1204 of Carrols Building on the " + tutorial_information.tutorial_date + " at " + tutorial_information.tutorial_time + " (24hr)", {
             width: 450,
             align: 'left'
         });
