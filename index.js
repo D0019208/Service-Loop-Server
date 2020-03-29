@@ -14,7 +14,7 @@ global.sms_app_key = "3i1ivu6elylunazito7y";
 global.sms_api_key = "112a600ad7ce7b679505469dd5079444cbdc1344";
 global.sms_secret_key = "3i5u7ezara9o5yhy6u8a";
 
-global.localhost = true;
+global.localhost = false;
 
 var Live_Updates_Controller;
 
