@@ -144,6 +144,7 @@ class database {
     });
   }
 
+
   /**
    * A function that finds and deletes a user by email
    * 
@@ -950,23 +951,79 @@ class database {
         });
     });
   }
-
+ 
   //TEST THIS
-  find_user_by_email(email) {
-    const userSchema = require('../models/users');
+//----------------------------------- Forgot Password --------------------------------------------
+find_user_by_email(email) {
+  return new Promise((resolve, reject) => {
+    userModel.findOne({ user_email: email })
+      .then((newUser) => {
+        if (newUser) {
+          resolve({ error: false, response: newUser });
+         // console.log("\n console log in find_user_by_email( )\n"+newUser+"\n")
+        } else {
+          if (newUser === null) {
+            resolve({ error: false, response: "No user found!" });
+          } else {
+            resolve({ error: true, response: "error ocurred"});
+          }
+        }
+      }).catch((exception) => {
+        resolve({ error: true, response: exception });
+      });
+  });
+}
 
-    const filter = { user_email: email };
 
-    return new Promise((resolve, reject) => {
-      userSchema.findOne(filter).then(result => {
-        resolve(result);
-      })
-        .catch((exception) => {
-          resolve({ error: true, response: exception });
-        });
-    });
-  }
+change_user_password(email,password)
+{
 
+  const filter = { user_email: email };
+  const update = {  user_password: password};
+
+
+    //update user
+     userModel.findOneAndUpdate(filter, update).then(result => {
+      console.log("Password changed")
+      this.disconnect();
+      //resolve({ error: false, response: "New Password successfully changed!" });
+     })
+       .catch((exception) => {
+         this.disconnect();
+        // resolve({ error: true, response: exception });
+       });
+    
+  
+}
+
+
+change_user_details(email,fullname,phone_number)
+{
+
+  const filter = { user_email: email };
+  const update = {  users_full_name: fullname, user_phone_number: phone_number};
+
+  const detail_input = require('./registration/filter_registration_input');
+  let valid = detail_input.validate_user_details(fullname,phone_number);
+
+  if (!valid.error) {
+
+  return new Promise((resolve, reject) => {
+    userModel.findOneAndUpdate(filter, update).then(result => {
+      this.disconnect();
+      resolve({ error: false, response: "New Profile details successfully changed!" });
+    }).catch((exception) => {
+        this.disconnect();
+        resolve({ error: true, response: exception });
+      });
+    
+
+      });
+    }
+      
+}
+
+//---------------------------------------------------------------------------------------------------------------
   //TEST THIS
   find_tutored_tutorials(email) {
     const postModel = require('../models/post');

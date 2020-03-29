@@ -14,7 +14,7 @@ global.sms_app_key = "3i1ivu6elylunazito7y";
 global.sms_api_key = "112a600ad7ce7b679505469dd5079444cbdc1344";
 global.sms_secret_key = "3i5u7ezara9o5yhy6u8a";
 
-global.localhost = false;
+global.localhost = true;
 
 var Live_Updates_Controller;
 
@@ -446,9 +446,113 @@ app.post('/push_notification', async (req, res) => {
   return;
 });
 
+
+//------------- New Forgot Password & change Details ---------
+app.post('/send_forgot_password', async (req, res) => {
+
+  let database = require('./services/database');
+ // const change_password = require('./services/change_password');
+  const SMS = require('./services/SMS');
+  const sms_controller = new SMS(global.sms_app_key, global.sms_api_key, global.sms_secret_key);
+
+  const database_connection = new database("Tutum_Nichita", "EajHKuViBCaL62Sj", "service_loop");
+  database_connection.connect();
+  
+       //get user
+       let user = await database_connection.find_user_by_email(req.body.users_email);
+ 
+       new Promise((resolve, reject) => {
+             //get phone number 
+              let phone_number =  user.response.user_phone_number;
+              console.log("\n"+phone_number);
+  
+            //send code
+          let data = { mobile: phone_number, country_code: '+353', service: 'SMS' }
+          response = sms_controller.send_sms(data);
+          res.json(response);
+
+      resolve({ error: false, response: "Pin has been sent via SMS!" });
+    }).catch((exception) => {
+      database_connection.disconnect();
+        resolve({ error: true, response: exception });
+      });
+ 
+
+});
+
+app.post('/change_password', async (req, res) => {
+
+  let database = require('./services/database');
+   
+  const database_connection = new database("Tutum_Nichita", "EajHKuViBCaL62Sj", "service_loop");
+  database_connection.connect();
+
+  let user = await database_connection.find_user_by_email(req.body.users_email)
+
+  //verify pin code
+  const SMS = require('./services/SMS');
+  const sms_controller = new SMS(global.sms_app_key, global.sms_api_key, global.sms_secret_key);
+
+ const token = user.response.user_phone_number;
+ const code = req.body.verification_code;
+ const verification_phone_number = user.response.user_phone_number;
+
+
+ let data = { mobile: verification_phone_number, country_code: '+353', token: token, code: code };
+
+  let val_pin = sms_controller.verify_pin(data);
+
+ 
+  if (!val_pin.error) 
+    {
+      console.log("Valid Pin");
+     //const validator = require('validator');
+      const password_input = require('./services/registration/filter_registration_input');
+
+  //Valiate user data
+      let valid = password_input.validate_password_input(req.body.users_email,  req.body.new_password, req.body.password_confirm);
+      if (!valid.error) 
+      {
+        
+        //hash password
+        const bcrypt = require('bcrypt');
+        const saltRounds = 10;
+
+        let hash = await bcrypt.hash(req.body.new_password, saltRounds);
+        // update doc with new hashed  password
+        let update = database_connection.change_user_password(req.body.users_email,hash);
+        
+      }
+
+    }
+    else
+    {
+     // response = "Pin Not Valid";
+    } 
+
+
+
+   // res.json(response);
+   
+
+});
+
+app.post('/change_details', async (req, res) => {
+
+
+  let database = require('./services/database');
+  
+  const database_connection = new database("Tutum_Nichita", "EajHKuViBCaL62Sj", "service_loop");
+  database_connection.connect();
+
+  response = database_connection.change_user_details(req.body.users_email,req.body.users_full_name,req.body.user_phone_number);
+
+});
+
+
 if (global.localhost) {
   server = app.listen(3001, async function () {
-    console.log('App started!');
+    console.log('App started on Localhost!');
 
     //let database = require('./services/database')
 
@@ -466,10 +570,10 @@ if (global.localhost) {
     Live_Updates_Controller.connect();
   });
 } else {
-  server = app.listen(process.env.ALWAYSDATA_HTTPD_PORT, process.env.ALWAYSDATA_HTTPD_IP, async function () {
-    console.log('App started!');
+   server = app.listen(process.env.ALWAYSDATA_HTTPD_PORT, process.env.ALWAYSDATA_HTTPD_IP, async function () {
+    console.log('App started on Alwaysdata!');
 
     Live_Updates_Controller = new Live_Updates(server, app);
-    Live_Updates_Controller.connect();
-  });
-} 
+     Live_Updates_Controller.connect();
+   });
+}

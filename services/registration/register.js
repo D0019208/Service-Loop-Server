@@ -122,19 +122,8 @@ let create_new_user = async function create_new_user(users_full_name, users_pass
     }
 
 
-
-
-
-
-
-
     //Setup the user data validation
-    const validator = require('validator');
-    const filter_registration_input = require('./filter_registration_input');
-
-    //Valiate user data
-    let filtering_response = await filter_registration_input.validate_registration_input(users_full_name, users_password, users_password_confirm, users_email, users_phone_number, database_connection);
-
+                                                                                                                                                                                                                                                                                                                                                                                                                   
     //If there is an error in validating the users data, we exit.
     if (filtering_response.error) {
         console.log("Exit")
