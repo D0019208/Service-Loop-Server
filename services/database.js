@@ -49,7 +49,7 @@ class database {
   //Function to close the mongoDB connection (80 active connections causes an error)
   disconnect() {
     mongoose.connection.close(function () {
-      console.log("ddd)");
+      console.log("closed db connection");
     });
   }
 
@@ -995,14 +995,13 @@ change_user_password(email,password)
 }
 
 
-change_user_details(email,fullname,phone_number)
+change_user_phone(email,phone_number)
 {
-
   const filter = { user_email: email };
-  const update = {  users_full_name: fullname, user_phone_number: phone_number};
+  const update = {  user_phone_number: phone_number};
 
   const detail_input = require('./registration/filter_registration_input');
-  let valid = detail_input.validate_user_details(fullname,phone_number);
+  let valid = detail_input.validate_user_phone(phone_number);
 
   if (!valid.error) {
 
@@ -1017,6 +1016,12 @@ change_user_details(email,fullname,phone_number)
     
 
       });
+    }
+    else
+    {
+      return new Promise((resolve, reject) => {
+     let response = "Phone number is not valid";
+      resolve(response);});
     }
       
 }

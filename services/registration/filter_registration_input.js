@@ -99,15 +99,18 @@ let validate_password_input = function validate_password_input(users_email, user
     }
 }
 
-let validate_user_details = function validate_user_details(users_full_name,users_phone_number)
+let validate_user_phone = function validate_user_details(users_phone_number)
 {
     const validator = require('validator');
-    if (users_full_name.length === 0 || users_phone_number.length === 0) {
-        return { error: true, response: "Email and Fullname must no be left empty" };
+    if (users_phone_number.length === 0) {
+      
+        return { error: true, response: "Phone number must no be left empty" };
     }
     if (validator.isMobilePhone('' + users_phone_number.replace(/\s/g, ''), ['en-IE'])) {
+    
         return { error: false, response: "valid" };
     } else {
+      
         return {error: true, response: "'" + validator.escape(users_phone_number) + "' is not a valid phone number."};
     }
 
@@ -115,5 +118,5 @@ let validate_user_details = function validate_user_details(users_full_name,users
 }
 
 exports.validate_registration_input = filter_registration_input;
-exports.validate_user_details = validate_user_details;
+exports.validate_user_phone = validate_user_phone;
 exports.validate_password_input = validate_password_input;

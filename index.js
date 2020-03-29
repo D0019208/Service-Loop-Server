@@ -14,7 +14,7 @@ global.sms_app_key = "3i1ivu6elylunazito7y";
 global.sms_api_key = "112a600ad7ce7b679505469dd5079444cbdc1344";
 global.sms_secret_key = "3i5u7ezara9o5yhy6u8a";
 
-global.localhost = false;
+global.localhost = true;
 
 var Live_Updates_Controller;
 
@@ -487,25 +487,24 @@ app.post('/change_password', async (req, res) => {
   const database_connection = new database("Tutum_Nichita", "EajHKuViBCaL62Sj", "service_loop");
   database_connection.connect();
 
-  let user = await database_connection.find_user_by_email(req.body.users_email)
+  if(req.body.new_password === req.body.password_confirm)
+  {
 
-  //verify pin code
-  const SMS = require('./services/SMS');
-  const sms_controller = new SMS(global.sms_app_key, global.sms_api_key, global.sms_secret_key);
+    const bcrypt = require('bcrypt');
+    const saltRounds = 10;
 
- const token = user.response.user_phone_number;
- const code = req.body.verification_code;
- const verification_phone_number = user.response.user_phone_number;
+    let user = await database_connection.find_user_by_email(req.body.users_email);
 
-
- let data = { mobile: verification_phone_number, country_code: '+353', token: token, code: code };
-
-  let val_pin = sms_controller.verify_pin(data);
-
- 
-  if (!val_pin.error) 
+    let pword = user.response.user_password;
+    // check if confirm & new password  match
+    let match = bcrypt.compare(req.body.users_email, pword, function(err,result) 
     {
-      console.log("Valid Pin");
+     result == true
+    });
+
+  if (match = true) 
+    {
+      console.log("Confirm & new Match");
      //const validator = require('validator');
       const password_input = require('./services/registration/filter_registration_input');
 
@@ -514,38 +513,42 @@ app.post('/change_password', async (req, res) => {
       if (!valid.error) 
       {
         
-        //hash password
-        const bcrypt = require('bcrypt');
-        const saltRounds = 10;
-
+        //hash password       
         let hash = await bcrypt.hash(req.body.new_password, saltRounds);
         // update doc with new hashed  password
-        let update = database_connection.change_user_password(req.body.users_email,hash);
+        response = database_connection.change_user_password(req.body.users_email,hash);
+        res.json(response);
+        return;
         
       }
-
     }
     else
     {
-     // response = "Pin Not Valid";
+      response = "Password Incorrect";
+      res.json(response);
+      return;
     } 
-
-
-
-   // res.json(response);
+    }
+    else
+    {
+      response = "Password & confirm password did not match"
+      res.json(response);
+      return;
+    }
+    
    
-
 });
 
-app.post('/change_details', async (req, res) => {
-
+app.post('/change_phone', async (req, res) => {
 
   let database = require('./services/database');
   
   const database_connection = new database("Tutum_Nichita", "EajHKuViBCaL62Sj", "service_loop");
   database_connection.connect();
 
-  response = database_connection.change_user_details(req.body.users_email,req.body.users_full_name,req.body.user_phone_number);
+  response = database_connection.change_user_phone(req.body.users_email,req.body.user_phone_number);
+
+  res.json(response);
 
 });
 
