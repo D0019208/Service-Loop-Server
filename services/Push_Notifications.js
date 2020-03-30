@@ -5,7 +5,7 @@ class Push_Notifications {
 	}
 
 	async push(title, body, to, key, notification_details, post) {
-		let response = "";
+		let response;
 
 		try {
 			let notification = {
@@ -13,7 +13,7 @@ class Push_Notifications {
 				data: { notification_data: notification_details, post_data: post, key: key }, large_icon: "http://d00192082.alwaysdata.net/ServiceLoopServer/resources/images/email_logo.png"
 			};
 
-			//response = await this.api.createNotification(notification);
+			response = await this.api.createNotification(notification);
 			console.log(response.body.id);
 		} catch (e) {
 			if (e instanceof OneSignal.HTTPError) {
