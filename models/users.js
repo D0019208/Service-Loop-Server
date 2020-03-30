@@ -11,8 +11,8 @@ const UserSchema = new mongoose.Schema({
   },
   user_phone_number:
   {
-      type: String,
-      required: true
+    type: String,
+    required: true
   },
   user_tutor:
   {
@@ -23,13 +23,22 @@ const UserSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  past_ratings: {
+    type: Array
+  },
+  tutor_rating: {
+    type: Number
+  },
+  total_ratings: {
+    type: Number
+  },
   user_modules: {
     type: Array
   },
-  user_password:{
-    type:String
+  user_password: {
+    type: String
   },
-  user_digital_certificate_path: 
+  user_digital_certificate_path:
   {
     type: String
   },

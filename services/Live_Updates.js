@@ -53,6 +53,15 @@ class Live_Updates {
                 this.sendAgreementAcceptedNotification(socket, data);
             });
 
+            socket.on('begin_tutorial', (data) => {
+                console.log("Tutorial is beginingg.")
+                this.sendBeginTutorialNotification(socket, data);
+            });
+
+            socket.on('finish_tutorial', (data) => {
+                this.sendFinishTutorialNotification(socket, data);
+            });
+
             //Update the socket once a user becomes a tutor (add modules)
             socket.on('update_socket', (data) => {
                 for (let i = 0; i < this.users_connected.length; i++) {
@@ -73,6 +82,22 @@ class Live_Updates {
             //   } 
             // });
         });
+    }
+
+    sendBeginTutorialNotification(socket, data) {
+        for (let i = 0; i < this.users_connected.length; i++) {
+            if (this.users_connected[i].email === data.the_notification.std_email) {
+                socket.to(this.users_connected[i].socket_id).emit("tutorial_has_begun", { response: data.the_notification, post: data.the_post });
+            }
+        }
+    }
+
+    sendFinishTutorialNotification(socket, data) {
+        for (let i = 0; i < this.users_connected.length; i++) {
+            if (this.users_connected[i].email === data.the_notification.std_email) {
+                socket.to(this.users_connected[i].socket_id).emit("tutorial_has_finished", { response: data.the_notification, post: data.the_post });
+            }
+        }
     }
 
     send_notification(socket, data) {
@@ -102,8 +127,8 @@ class Live_Updates {
     }
 
     send_tutorial(socket, data) {
-        const Push_Notifications = require('./Push_Notifications');  
-        const push_controller = new Push_Notifications("c08fd8bd-bfbf-4dd3-bc07-61d214842ccd", "MGMxYzc3NjEtZjFkOC00MmIwLTkyYmMtMzVmMjgzZDg4MzM2"); 
+        const Push_Notifications = require('./Push_Notifications');
+        const push_controller = new Push_Notifications("c08fd8bd-bfbf-4dd3-bc07-61d214842ccd", "MGMxYzc3NjEtZjFkOC00MmIwLTkyYmMtMzVmMjgzZDg4MzM2");
 
         let elegible_users = [];
         console.log("Push data")

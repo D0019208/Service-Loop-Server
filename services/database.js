@@ -435,13 +435,13 @@ class database {
     //We check if there is any extra information
     if (extra_information !== null) {
       //If the tags array contains the tag "Tutorial request sent, we add a post id to the notification model"
-      if (notification_tags.includes("Tutorial request sent") || notification_tags.includes("Tutorial requested") || notification_tags.includes("Tutorial request accepted") || notification_tags.includes("Tutorial agreement offered") || notification_tags.includes("Tutorial agreement accepted") || notification_tags.includes("Tutorial agreement rejected")) {
+      //if (notification_tags.includes("Tutorial request sent") || notification_tags.includes("Tutorial requested") || notification_tags.includes("Tutorial request accepted") || notification_tags.includes("Tutorial agreement offered") || notification_tags.includes("Tutorial agreement accepted") || notification_tags.includes("Tutorial agreement rejected") || notification_tags.includes("Tutorial started")) {
         notificationModel.post_id = extra_information.post_id;
 
         if (typeof extra_information.modules !== 'undefined') {
           notificationModel.notification_modules = extra_information.modules;
         }
-      }
+      //}
     }
 
     //If there is an email, we add it to the model
@@ -852,7 +852,7 @@ class database {
     const update = update_object;
 
     return new Promise(async (resolve, reject) => {
-      postModel.findOneAndUpdate(filter, update).then(result => {
+      postModel.findOneAndUpdate(filter, update, { new: true }).then(result => {
         resolve({ error: false, response: result });
       });
     });
@@ -888,7 +888,7 @@ class database {
     const update = { post_agreement_url: "", tutor_signature: "", post_agreement_offered: false };
 
     return new Promise((resolve, reject) => {
-      postModel.findOneAndUpdate(filter, update).then(async (result) => {
+      postModel.findOneAndUpdate(filter, update, { new: true }).then(async (result) => {
         fs.unlinkSync(base_path + 'resources/pdfs/agreement_' + post_id + '_signed.pdf');
         let student_notification = await this.create_notification("Agreement rejected", "You have successfully rejected the agreement for the tutorial, '" + result.post_title + "'. Please get in contact with your tutor, '" + result.post_tutor_name + "' via email at '" + result.post_tutor_email + "' to arrange a new agreement.", result.std_email, ["Tutorial agreement rejected"], { post_id: post_id }, result.std_avatar);
         let tutor_notification = await this.create_notification("Agreement rejected", "The student, '" + result.std_name + "' has rejected the agreement for the tutorial, '" + result.post_title + "'. Please get in contact with him/her, via email at '" + result.std_email + "' to arrange a new agreement.", result.post_tutor_email, ["Tutorial agreement rejected"], { post_id: post_id }, result.std_avatar);
@@ -918,28 +918,28 @@ class database {
         });
     });
   }
- 
+
   //TEST THIS
-//----------------------------------- Forgot Password --------------------------------------------
-find_user_by_email(email) {
-  return new Promise((resolve, reject) => {
-    userModel.findOne({ user_email: email })
-      .then((newUser) => {
-        if (newUser) {
-          resolve({ error: false, response: newUser });
-         // console.log("\n console log in find_user_by_email( )\n"+newUser+"\n")
-        } else {
-          if (newUser === null) {
-            resolve({ error: false, response: "No user found!" });
+  //----------------------------------- Forgot Password --------------------------------------------
+  find_user_by_email(email) {
+    return new Promise((resolve, reject) => {
+      userModel.findOne({ user_email: email })
+        .then((newUser) => {
+          if (newUser) {
+            resolve({ error: false, response: newUser });
+            // console.log("\n console log in find_user_by_email( )\n"+newUser+"\n")
           } else {
-            resolve({ error: true, response: "error ocurred"});
+            if (newUser === null) {
+              resolve({ error: false, response: "No user found!" });
+            } else {
+              resolve({ error: true, response: "error ocurred" });
+            }
           }
-        }
-      }).catch((exception) => {
-        resolve({ error: true, response: exception });
-      });
-  });
-}
+        }).catch((exception) => {
+          resolve({ error: true, response: exception });
+        });
+    });
+  }
   begin_tutorial(post_id) {
     const postModel = require('../models/post');
 
@@ -971,62 +971,74 @@ find_user_by_email(email) {
     });
   }
 
+  //TEST THIS
+  rate_tutor(tutor_email, rating, previous_ratings, total_ratings) {
+    const postModel = require('../models/post');
 
+    const filter = { user_email: tutor_email };
 
-change_user_password(email,password)
-{
+    return new Promise((resolve, reject) => {
+      postModel.findOneAndUpdate(filter, { tutor_rating: rating, past_ratings: previous_ratings, total_ratings: total_ratings }, { new: true }).then(result => {
+        resolve(result);
+      })
+        .catch((exception) => {
+          resolve({ error: true, response: exception });
+        });
+    });
+  }
 
-  const filter = { user_email: email };
-  const update = {  user_password: password};
+  change_user_password(email, password) {
+
+    const filter = { user_email: email };
+    const update = { user_password: password };
 
 
     //update user
-     userModel.findOneAndUpdate(filter, update).then(result => {
+    userModel.findOneAndUpdate(filter, update).then(result => {
       console.log("Password changed")
       this.disconnect();
       //resolve({ error: false, response: "New Password successfully changed!" });
-     })
-       .catch((exception) => {
-         this.disconnect();
-        // resolve({ error: true, response: exception });
-       });
-    
-  
-}
-
-
-change_user_phone(email,phone_number)
-{
-  const filter = { user_email: email };
-  const update = {  user_phone_number: phone_number};
-
-  const detail_input = require('./registration/filter_registration_input');
-  let valid = detail_input.validate_user_phone(phone_number);
-
-  if (!valid.error) {
-
-  return new Promise((resolve, reject) => {
-    userModel.findOneAndUpdate(filter, update).then(result => {
-      this.disconnect();
-      resolve({ error: false, response: "New Profile details successfully changed!" });
-    }).catch((exception) => {
+    })
+      .catch((exception) => {
         this.disconnect();
-        resolve({ error: true, response: exception });
+        // resolve({ error: true, response: exception });
       });
-    
 
-      });
-    }
-    else
-    {
+
+  }
+
+
+  change_user_phone(email, phone_number) {
+    const filter = { user_email: email };
+    const update = { user_phone_number: phone_number };
+
+    const detail_input = require('./registration/filter_registration_input');
+    let valid = detail_input.validate_user_phone(phone_number);
+
+    if (!valid.error) {
+
       return new Promise((resolve, reject) => {
-     let response = "Phone number is not valid";
-      resolve(response);});
-    }
-      
-}
+        userModel.findOneAndUpdate(filter, update).then(result => {
+          this.disconnect();
+          resolve({ error: false, response: "New Profile details successfully changed!" });
+        }).catch((exception) => {
+          this.disconnect();
+          resolve({ error: true, response: exception });
+        });
 
-//---------------------------------------------------------------------------------------------------------------
+
+      });
+    }
+    else {
+      return new Promise((resolve, reject) => {
+        let response = "Phone number is not valid";
+        resolve(response);
+      });
+    }
+
+  }
+
+  //---------------------------------------------------------------------------------------------------------------
   //TEST THIS
   find_tutored_tutorials(email) {
     const postModel = require('../models/post');
@@ -1107,6 +1119,18 @@ change_user_phone(email,phone_number)
     return new Promise((resolve, reject) => {
       postModel.find(filter).then(result => {
         console.log(result)
+        resolve(result);
+      });
+    });
+  }
+
+  update_post(post_id, update) {
+    const postModel = require('../models/post');
+
+    let filter = { _id: post_id };
+
+    return new Promise((resolve, reject) => {
+      postModel.findOneAndUpdate(filter, update).then(result => {
         resolve(result);
       });
     });

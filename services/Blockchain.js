@@ -30,8 +30,7 @@ class Blockchain {
     }
 
     //Set a value in blockchain
-    async add_transaction_to_blockchain(key, data) { 
-        return;
+    async add_transaction_to_blockchain(key, data) {
         var [error, pendingResponse, data] = await this.blockchain.invoke("add_transaction", {}, { args: [key, data] })
         console.log(error, pendingResponse, data);
     }

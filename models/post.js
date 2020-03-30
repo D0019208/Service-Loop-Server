@@ -64,6 +64,11 @@ const PostSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  tutor_rated: 
+  {
+    type: Boolean,
+    default: false
+  },
   post_agreement_url:
   {
     type: String
