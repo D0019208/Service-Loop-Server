@@ -1130,7 +1130,7 @@ class database {
     let filter = { _id: post_id };
 
     return new Promise((resolve, reject) => {
-      postModel.findOneAndUpdate(filter, update).then(result => {
+      postModel.findOneAndUpdate(filter, update, {new: true}).then(result => {
         resolve(result);
       });
     });
