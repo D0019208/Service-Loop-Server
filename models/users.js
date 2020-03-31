@@ -27,10 +27,12 @@ const UserSchema = new mongoose.Schema({
     type: Array
   },
   tutor_rating: {
-    type: Number
+    type: Number,
+    default: 0
   },
   total_ratings: {
-    type: Number
+    type: Number,
+    default: 0
   },
   user_modules: {
     type: Array

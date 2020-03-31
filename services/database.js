@@ -973,12 +973,10 @@ class database {
 
   //TEST THIS
   rate_tutor(tutor_email, rating, previous_ratings, total_ratings) {
-    const postModel = require('../models/post');
-
     const filter = { user_email: tutor_email };
 
     return new Promise((resolve, reject) => {
-      postModel.findOneAndUpdate(filter, { tutor_rating: rating, past_ratings: previous_ratings, total_ratings: total_ratings }, { new: true }).then(result => {
+      userModel.findOneAndUpdate(filter, { tutor_rating: rating, past_ratings: previous_ratings, total_ratings: total_ratings }, { new: true }).then(result => {
         resolve(result);
       })
         .catch((exception) => {
