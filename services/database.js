@@ -436,11 +436,11 @@ class database {
     if (extra_information !== null) {
       //If the tags array contains the tag "Tutorial request sent, we add a post id to the notification model"
       //if (notification_tags.includes("Tutorial request sent") || notification_tags.includes("Tutorial requested") || notification_tags.includes("Tutorial request accepted") || notification_tags.includes("Tutorial agreement offered") || notification_tags.includes("Tutorial agreement accepted") || notification_tags.includes("Tutorial agreement rejected") || notification_tags.includes("Tutorial started")) {
-        notificationModel.post_id = extra_information.post_id;
+      notificationModel.post_id = extra_information.post_id;
 
-        if (typeof extra_information.modules !== 'undefined') {
-          notificationModel.notification_modules = extra_information.modules;
-        }
+      if (typeof extra_information.modules !== 'undefined') {
+        notificationModel.notification_modules = extra_information.modules;
+      }
       //}
     }
 
@@ -962,7 +962,7 @@ class database {
     const filter = { _id: post_id };
 
     return new Promise((resolve, reject) => {
-      postModel.findOneAndUpdate(filter, { post_status: "Done" }, { new: true }).then(result => {
+      postModel.findOneAndUpdate(filter, { post_status: "Done", tutorial_finished: true }, { new: true }).then(result => {
         resolve(result);
       })
         .catch((exception) => {
@@ -1128,8 +1128,37 @@ class database {
     let filter = { _id: post_id };
 
     return new Promise((resolve, reject) => {
-      postModel.findOneAndUpdate(filter, update, {new: true}).then(result => {
+      postModel.findOneAndUpdate(filter, update, { new: true }).then(result => {
         resolve(result);
+      });
+    });
+  }
+
+  check_room_availability(start_date, start_time, end_time) {
+    const postModel = require('../models/post');
+
+    let filter = { tutorial_finished: false, post_agreement_offered: true };
+
+    return new Promise((resolve, reject) => {
+      postModel.find(filter).then(result => {
+        console.log(result)
+        let room_booked = false;
+        const moment = require('moment-timezone');
+        
+        let tutorial_start_date = moment(new Date(start_date + ' ' + start_time)).tz('Europe/Dublin').format('YYYY-MM-DD HH:mm');
+        let tutorial_end_date = moment(new Date(start_date + ' ' + end_time)).tz('Europe/Dublin').format('YYYY-MM-DD HH:mm');
+
+        for (let i = 0; i < result.length; i++) {
+          let other_tutorial_start_date = moment(new Date(result[0].tutorial_date + ' ' + result[0].tutorial_time)).tz('Europe/Dublin').format('YYYY-MM-DD HH:mm');
+          let other_tutorial_end_date = moment(new Date(result[0].tutorial_date + ' ' + result[0].tutorial_end_time)).tz('Europe/Dublin').format('YYYY-MM-DD HH:mm');
+
+          if ((tutorial_start_date < other_tutorial_end_date) && (other_tutorial_start_date <= tutorial_end_date)) {
+            room_booked = true;
+            resolve(room_booked)
+          }
+        }
+
+        resolve(room_booked);
       });
     });
   }

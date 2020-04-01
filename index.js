@@ -355,7 +355,7 @@ app.post('/offer_agreement', async (req, res) => {
   const database_connection = new database("Tutum_Nichita", "EajHKuViBCaL62Sj", "service_loop");
   let db_con_response = await database_connection.connect();
 
-  res.json(await offer_agreement.offer_agreement(database_connection, req.body.tutorial_id, req.body.tutorial_date.substring(0, 10), req.body.tutorial_time, req.body.tutor_signature, req.body.tutor_avatar));
+  res.json(await offer_agreement.offer_agreement(database_connection, req.body.tutorial_id, req.body.tutorial_date.substring(0, 10), req.body.tutorial_time, req.body.tutorial_end_time, req.body.tutor_signature, req.body.tutor_avatar));
   return;
 });
 

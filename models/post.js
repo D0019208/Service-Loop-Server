@@ -64,6 +64,11 @@ const PostSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  tutorial_finished: 
+  {
+    type: Boolean,
+    default: false
+  },
   tutor_rated: 
   {
     type: Boolean,
@@ -82,6 +87,10 @@ const PostSchema = new mongoose.Schema({
     type: String
   },
   tutorial_time:
+  {
+    type: String
+  },
+  tutorial_end_time:
   {
     type: String
   },
