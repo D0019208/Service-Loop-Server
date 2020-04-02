@@ -622,7 +622,7 @@ app.post('/finish_tutorial', async (req, res) => {
   let tutor_avatar = await database_connection.find_id_by_email(tutorial.post_tutor_email);
   let tutor_notification = await database_connection.create_notification("Tutorial finished", "The tutorial '" + tutorial.post_title + "' has been completed!<br><br>Thank you for using Student Loop!", tutorial.post_tutor_email, ["Tutorial finished"], { post_id: req.body.tutorial_id }, tutor_avatar.response.user_avatar);
 
-  blockchain_controller.add_transaction_to_blockchain(req.body.tutorial_id, { title: "Tutorial started", content: "The tutorial '" + tutorial.post_title + "' has just been started by the tutor." });
+  blockchain_controller.add_transaction_to_blockchain(req.body.tutorial_id, { title: "Tutorial finished", content: "The tutorial '" + tutorial.post_title + "' has just been finished by the tutor." });
 
   res.json({ updated_tutorial: tutorial, student_notification: student_notification, tutor_notification: tutor_notification });
   return;
