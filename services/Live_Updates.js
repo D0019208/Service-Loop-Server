@@ -54,12 +54,15 @@ class Live_Updates {
             });
 
             socket.on('begin_tutorial', (data) => {
-                console.log("Tutorial is beginingg.")
                 this.sendBeginTutorialNotification(socket, data);
             });
 
             socket.on('finish_tutorial', (data) => {
                 this.sendFinishTutorialNotification(socket, data);
+            });
+
+            socket.on('send_rate_tutor', (data) => {
+                this.sendRateTutor(socket, data);
             });
 
             //Update the socket once a user becomes a tutor (add modules)
@@ -82,6 +85,17 @@ class Live_Updates {
             //   } 
             // });
         });
+    }
+
+    sendRateTutor(socket, data) {
+        console.log("Rate tutor")
+        console.log(data)
+        for (let i = 0; i < this.users_connected.length; i++) {
+            if (this.users_connected[i].email === data.the_post.post_tutor_email) {
+                console.log("Being sent!")
+                socket.to(this.users_connected[i].socket_id).emit("tutor_update_rating", { rating: data.the_rating, post: data.the_post });
+            }
+        }
     }
 
     sendBeginTutorialNotification(socket, data) {
@@ -109,7 +123,7 @@ class Live_Updates {
             console.log(this.users_connected[i].modules);
 
             for (let j = 0; j < this.users_connected[i].modules.length; j++) {
-                if (this.users_connected[i].modules[j] === data.notification_modules[0]) {
+                if (this.users_connected[i].modules[j] === data.the_notification.notification_modules[0]) {
                     elegible_users.push(this.users_connected[i]);
                 }
             }
@@ -120,7 +134,7 @@ class Live_Updates {
 
         for (let i = 0; i < elegible_users.length; i++) {
             //socket.emit('news', { hello: elegible_users, socket_id: elegible_users[i].socket_id });
-            socket.to(elegible_users[i].socket_id).emit("new_notification", { response: data });
+            socket.to(elegible_users[i].socket_id).emit("new_notification", { response: data.the_notification, post: data.the_post });
         }
 
         //socket.emit('news', { hello: elegible_users });
@@ -186,13 +200,13 @@ class Live_Updates {
     }
 
     sendAgreementAcceptedNotification(socket, data) {
-        console.log("Rejected")
+        console.log("Accepted!!!")
         console.log(this.users_connected)
         console.log(data);
 
         for (let i = 0; i < this.users_connected.length; i++) {
             if (this.users_connected[i].email === data.the_post.post_tutor_email) {
-                console.log("Send rejected")
+                console.log("Send acceoted")
                 socket.to(this.users_connected[i].socket_id).emit("agreement_accepted_tutor", { response: data.the_notification.response, post: data.the_post });
             }
         }

@@ -327,11 +327,11 @@ class database {
             console.log("This post")
             console.log(post);
             //If there is no error, we create a notification for the user stating that their request has been sent
-            let notification_response = await contenxt.create_notification("Tutorial request sent", "You have successfully requested a tutorial for the following modules: " + request_modules.join(', ') + ". A tutor will be in contact with you as soon as possible.", post.std_email, ["Tutorial request sent"], { post_id: post._id, modules: request_modules }, user_avatar);
+            let notification_response = await contenxt.create_notification("Tutorial request sent", "You have successfully requested a tutorial for the following modules: " + request_modules.join(', ') + ".<br><br> A tutor will be in contact with you as soon as possible.", post.std_email, ["Tutorial request sent"], { post_id: post._id, modules: request_modules }, user_avatar);
 
             //If the tutorial request notification succeeds, we create a notification for all tutors that can help with the requested modules 
             if (!notification_response.error) {
-              let tutor_notification_response = await contenxt.create_notification_for_tutors("New tutorial request", post.std_email, post.std_email + " requested a tutorial for the " + request_modules.join(', ') + " modules. Please see the post in context.", ["Tutorial requested"], request_modules, post._id, user_avatar)
+              let tutor_notification_response = await contenxt.create_notification_for_tutors("New tutorial request", post.std_email, post.std_email + " requested a tutorial for the " + request_modules.join(', ') + " modules.<br><br> Please see the post in context.", ["Tutorial requested"], request_modules, post._id, user_avatar)
 
               //If the notification is sent, we return an object with the "error" key set to false along with a response
               if (!tutor_notification_response.error) {
@@ -391,8 +391,11 @@ class database {
 
     notificationModel.notification_avatar = user_avatar;
     notificationModel.notification_title = notification_title;
+
+    let regex = new RegExp("<br>", "g");
     notificationModel.notification_desc = notification_description;
-    notificationModel.notification_desc_trunc = notification_description.trunc(100);
+    notificationModel.notification_desc_trunc = notification_description.trunc(100).replace(regex, " ");
+
     notificationModel.notification_posted_on = notification_posted_on;
     notificationModel.notification_tags = notification_tags;
     notificationModel.notification_modules = notification_modules;
@@ -449,8 +452,9 @@ class database {
       notificationModel.std_email = users_email;
     }
 
+    let regex = new RegExp("<br>", "g");
     notificationModel.notification_desc = notification_description;
-    notificationModel.notification_desc_trunc = notification_description.trunc(100);
+    notificationModel.notification_desc_trunc = notification_description.trunc(100).replace(regex, " ");
     notificationModel.notification_avatar = user_avatar;
     notificationModel.notification_title = notification_title;
 
@@ -691,12 +695,12 @@ class database {
     console.log(post_status)
     if (!post_status.error) {
       //Tutor notification
-      let notification_response_tutor = await this.create_notification("Tutorial request accepted", "You have accepted a tutorial.\nPlease fill out the agreement form by clicking the below button or locating this tutorial in 'My tutorials'", tutor_email, ["Tutorial request accepted"], { post_id: post_id }, user_avatar);
+      let notification_response_tutor = await this.create_notification("Tutorial request accepted", "You have accepted a tutorial.<br><br>Please fill out the agreement form by clicking the below button or locating this tutorial in 'My tutorials'", tutor_email, ["Tutorial request accepted"], { post_id: post_id }, user_avatar);
 
       if (!notification_response_tutor.error) {
         return new Promise((resolve, reject) => {
           postModel.findOneAndUpdate(filter, update, { new: true }).then(async result => {
-            let notification_response_student = await this.create_notification("Tutorial accepted", tutor_name + " has accepted your request '" + result.post_title + "'.\nThe tutor will contact you via email.", result.std_email, ["Tutorial request accepted"], { post_id: post_id }, user_avatar);
+            let notification_response_student = await this.create_notification("Tutorial accepted", tutor_name + " has accepted your request '" + result.post_title + "'.<br><br>The tutor will contact you via email.", result.std_email, ["Tutorial request accepted"], { post_id: post_id }, user_avatar);
             blockchain_controller.add_transaction_to_blockchain(post_id, { title: "Tutorial accepted", content: "'" + tutor_name + "' has accepted to tutor '" + result.std_name + "' for the tutorial '" + result.post_title + "'" });
             this.disconnect();
             resolve({ error: false, response: { tutor_notification: notification_response_tutor.response, student_notification: notification_response_student, post: result } });
@@ -890,8 +894,8 @@ class database {
     return new Promise((resolve, reject) => {
       postModel.findOneAndUpdate(filter, update, { new: true }).then(async (result) => {
         fs.unlinkSync(base_path + 'resources/pdfs/agreement_' + post_id + '_signed.pdf');
-        let student_notification = await this.create_notification("Agreement rejected", "You have successfully rejected the agreement for the tutorial, '" + result.post_title + "'. Please get in contact with your tutor, '" + result.post_tutor_name + "' via email at '" + result.post_tutor_email + "' to arrange a new agreement.", result.std_email, ["Tutorial agreement rejected"], { post_id: post_id }, result.std_avatar);
-        let tutor_notification = await this.create_notification("Agreement rejected", "The student, '" + result.std_name + "' has rejected the agreement for the tutorial, '" + result.post_title + "'. Please get in contact with him/her, via email at '" + result.std_email + "' to arrange a new agreement.", result.post_tutor_email, ["Tutorial agreement rejected"], { post_id: post_id }, result.std_avatar);
+        let student_notification = await this.create_notification("Agreement rejected", "You have successfully rejected the agreement for the tutorial, '" + result.post_title + "'.<br><br>Please get in contact with your tutor, '" + result.post_tutor_name + "' via email at '" + result.post_tutor_email + "' to arrange a new agreement.", result.std_email, ["Tutorial agreement rejected"], { post_id: post_id }, result.std_avatar);
+        let tutor_notification = await this.create_notification("Agreement rejected", "The student, '" + result.std_name + "' has rejected the agreement for the tutorial, '" + result.post_title + "'.<br><br>Please get in contact with him/her, via email at '" + result.std_email + "' to arrange a new agreement.", result.post_tutor_email, ["Tutorial agreement rejected"], { post_id: post_id }, result.std_avatar);
 
         const Blockchain = require('./Blockchain');
         const blockchain_controller = new Blockchain(global.blockchain_api_key);

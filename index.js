@@ -14,7 +14,7 @@ global.sms_app_key = "3i1ivu6elylunazito7y";
 global.sms_api_key = "112a600ad7ce7b679505469dd5079444cbdc1344";
 global.sms_secret_key = "3i5u7ezara9o5yhy6u8a";
 
-global.localhost = false;
+global.localhost = true;
 
 var Live_Updates_Controller;
 
@@ -616,11 +616,11 @@ app.post('/finish_tutorial', async (req, res) => {
   //Begin tutorial
   let tutorial = await database_connection.finish_tutorial(req.body.tutorial_id);
 
-  let student_notification = await database_connection.create_notification("Tutorial finished", "The tutorial '" + tutorial.post_title + "' has been completed! Thank you for using Student Loop!", tutorial.std_email, ["Tutorial finished"], { post_id: req.body.tutorial_id }, req.body.avatar);
+  let student_notification = await database_connection.create_notification("Tutorial finished", "The tutorial '" + tutorial.post_title + "' has been completed!<br><br>Thank you for using Student Loop!", tutorial.std_email, ["Tutorial finished"], { post_id: req.body.tutorial_id }, req.body.avatar);
 
   //Get tutors avatar
   let tutor_avatar = await database_connection.find_id_by_email(tutorial.post_tutor_email);
-  let tutor_notification = await database_connection.create_notification("Tutorial finished", "The tutorial '" + tutorial.post_title + "' has been completed! Thank you for using Student Loop!", tutorial.post_tutor_email, ["Tutorial finished"], { post_id: req.body.tutorial_id }, tutor_avatar.response.user_avatar);
+  let tutor_notification = await database_connection.create_notification("Tutorial finished", "The tutorial '" + tutorial.post_title + "' has been completed!<br><br>Thank you for using Student Loop!", tutorial.post_tutor_email, ["Tutorial finished"], { post_id: req.body.tutorial_id }, tutor_avatar.response.user_avatar);
 
   blockchain_controller.add_transaction_to_blockchain(req.body.tutorial_id, { title: "Tutorial started", content: "The tutorial '" + tutorial.post_title + "' has just been started by the tutor." });
 
@@ -649,18 +649,18 @@ app.post('/rate_tutor', async (req, res) => {
   rating = Math.round(rating);
 
   let rating_update_response = await database_connection.rate_tutor(req.body.tutorial.post_tutor_email, rating, previous_ratings, total_ratings);
-  let new_tutorial = await database_connection.update_post(req.body.tutorial_id, { tutor_rated: true });
+  let new_tutorial = await database_connection.update_post(req.body.tutorial_id, { tutor_rated: true, comment: req.body.comment });
 
   blockchain_controller.add_transaction_to_blockchain(req.body.tutorial_id, { title: "Tutor has been rated", content: "The student has give you a rating of " + req.body.rating + "/5 for the tutorial '" + req.body.tutorial.post_title + "'." });
 
-  res.json({ updated_tutorial: new_tutorial});
+  res.json({ updated_tutorial: new_tutorial, rating: rating });
   return;
 });
 
 if (global.localhost) {
   server = app.listen(3001, async function () {
     console.log('App started on Localhost!');
-
+    
     // let database = require('./services/database')
 
     // const database_connection = new database("Tutum_Nichita", "EajHKuViBCaL62Sj", "service_loop");
@@ -669,8 +669,8 @@ if (global.localhost) {
     // //DELETE EVERYTHING
     // await database_connection.reset();
 
-    // Live_Updates_Controller = new Live_Updates(server, app);
-    // Live_Updates_Controller.connect();
+    Live_Updates_Controller = new Live_Updates(server, app);
+    Live_Updates_Controller.connect();
   });
 } else {
   server = app.listen(process.env.ALWAYSDATA_HTTPD_PORT, process.env.ALWAYSDATA_HTTPD_IP, async function () {

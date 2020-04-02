@@ -74,6 +74,10 @@ const PostSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  comment:
+  {
+    type: String
+  },
   post_agreement_url:
   {
     type: String
