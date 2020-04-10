@@ -12,7 +12,7 @@ let update_avatar = async function update_avatar(database_connection, user_email
 
         require("fs").writeFile(base_path + "resources/images/" + user_email + ".jpg", base64_image, 'base64', async function (err) {
             let response = await database_connection.update_user(user_email, { user_avatar: "https://d00192082.alwaysdata.net/ServiceLoopServer/resources/images/" + user_email + ".jpg" });
-            database_connection.disconnect();
+
             resolve("https://d00192082.alwaysdata.net/ServiceLoopServer/resources/images/" + user_email + ".jpg");
         });
     });

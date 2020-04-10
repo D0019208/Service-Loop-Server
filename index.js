@@ -14,6 +14,10 @@ global.sms_app_key = "3i1ivu6elylunazito7y";
 global.sms_api_key = "112a600ad7ce7b679505469dd5079444cbdc1344";
 global.sms_secret_key = "3i5u7ezara9o5yhy6u8a";
 
+let database = require('./services/database')
+
+const database_connection = new database("Tutum_Nichita", "EajHKuViBCaL62Sj", "service_loop");
+
 global.localhost = false;
 
 var Live_Updates_Controller;
@@ -69,10 +73,6 @@ app.post('/create_and_sign_pdf', async (req, res) => {
 
 app.post('/check_user_details_correct', async (req, res) => {
   const login = require('./services/login');
-  const database = require('./services/database');
-
-  const database_connection = new database("Tutum_Nichita", "EajHKuViBCaL62Sj", "service_loop");
-  let db_con_response = await database_connection.connect();
 
   res.json(await login.check_user_credentials(req.body.users_email, req.body.users_password, database_connection));
   return;
@@ -98,11 +98,8 @@ app.post('/verify_code', async (req, res) => {
 
 app.post('/verify_register_input', async (req, res) => {
   const validator = require('validator');
-  const database = require('./services/database');
   const filter_registration_input = require('./services/registration/filter_registration_input');
   //validator.escape(req.body.users_first_name + " " + req.body.users_last_name)
-  const database_connection = new database("Tutum_Nichita", "EajHKuViBCaL62Sj", "service_loop");
-  let db_con_response = await database_connection.connect();
 
   let filtering_response = await filter_registration_input.validate_registration_input(validator.escape(req.body.users_full_name), req.body.users_password, req.body.users_password_confirm, validator.escape(req.body.users_email), validator.escape(req.body.users_phone_number), database_connection);
 
@@ -142,10 +139,6 @@ app.post('/send_sms_verification', async (req, res) => {
 
 app.post('/login_user', async (req, res) => {
   const login = require('./services/login');
-  const database = require('./services/database');
-
-  const database_connection = new database("Tutum_Nichita", "EajHKuViBCaL62Sj", "service_loop");
-  let db_con_response = await database_connection.connect();
 
   res.json(await login.login_user(req.body.users_email, req.body.users_password, database_connection));
   return;
@@ -160,13 +153,8 @@ app.post('/verify_token', async (req, res) => {
     //process.env.JWT_SECRET
     let JWT_SECRET = 'addjsonwebtokensecretherelikeQuiscustodietipsoscustodes';
 
-    const database = require('./services/database');
-
-    const database_connection = new database("Tutum_Nichita", "EajHKuViBCaL62Sj", "service_loop");
-    let db_con_response = await database_connection.connect();
     let user_response = await database_connection.find_user_by_email(email);
     let tutorials_count = await database_connection.find_tutored_tutorials(email);
-    database_connection.disconnect();
 
     let decoded = jwt.verify(token, JWT_SECRET);
 
@@ -189,14 +177,9 @@ app.post('/verify_token', async (req, res) => {
 app.post('/localhost', async (req, res) => {
   let email = req.body.email;
 
-  const database = require('./services/database');
-
-  const database_connection = new database("Tutum_Nichita", "EajHKuViBCaL62Sj", "service_loop");
-  let db_con_response = await database_connection.connect();
   let user_response = await database_connection.find_user_by_email(email);
 
   let tutorials_count = await database_connection.find_tutored_tutorials(email);
-  database_connection.disconnect();
 
   res.json({ session_response: "Session valid", user: user_response, tutorials_count: tutorials_count });
   return;
@@ -205,10 +188,6 @@ app.post('/localhost', async (req, res) => {
 app.post('/register', async (req, res) => {
   const register_new_user = require('./services/registration/register');
   const validator = require('validator');
-  const database = require('./services/database');
-
-  const database_connection = new database("Tutum_Nichita", "EajHKuViBCaL62Sj", "service_loop");
-  let db_con_response = await database_connection.connect();
 
   let result = await register_new_user.create_new_user(validator.escape(req.body.users_full_name), req.body.users_password, req.body.users_password_confirm, validator.escape(req.body.users_email), validator.escape(req.body.users_phone_number), database_connection);
   res.json(JSON.stringify(result));
@@ -219,15 +198,11 @@ app.post('/register', async (req, res) => {
 //"java -jar /home/d00192082/ServiceLoopServer/resources/java/JSignPdf.jar /home/d00192082/ServiceLoopServer/resources/pdfs/agreement_5e428eff1700d139c09167d2.pdf -v --visible-signature -d /home/d00192082/ServiceLoopServer/resources/pdfs -a --bg-path /home/d00192082/ServiceLoopServer/resources/images/adobe_watersign.png -page 1000 -kst PKCS12 -ksf /home/d00192082/ServiceLoopServer/ssl/client_5e41bc1b78c9ad2fa0dadac7.p12 -ksp pycnaMLBLp 2>&1"
 app.post('/appply_to_be_tutor', async (req, res) => {
   try {
-    let database = require('./services/database')
     const validator = require('validator');
 
     if (req.body.users_email === "" || req.body.users_email && req.body.users_skills.length !== 0 && req.body.users_skills) {
       let tutor_email = req.body.users_email;
       let tutor_skills = req.body.users_skills;
-
-      const database_connection = new database("Tutum_Nichita", "EajHKuViBCaL62Sj", "service_loop");
-      let db_con_response = await database_connection.connect();
 
       res.json(await database_connection.elevate_user_to_tutor(tutor_email, tutor_skills));
       return;
@@ -236,8 +211,6 @@ app.post('/appply_to_be_tutor', async (req, res) => {
       return;
     }
   } catch (ex) {
-    //????? maybe delete
-    database_connection.disconnect();
     res.json(ex);
     return;
   }
@@ -245,11 +218,7 @@ app.post('/appply_to_be_tutor', async (req, res) => {
 });
 
 app.post('/request_tutorial', async (req, res) => {
-  let database = require('./services/database')
   const validator = require('validator');
-
-  const database_connection = new database("Tutum_Nichita", "EajHKuViBCaL62Sj", "service_loop");
-  let db_con_response = await database_connection.connect();
 
   if (req.body.request_title.length == 0 || req.body.request_description.length == 0 || typeof req.body.request_modules[0] == "undefined" || req.body.request_modules == null || req.body.request_modules.length == null || req.body.users_email.length == 0) {
     res.json({ error: true, response: "Please fill in all fields before proceeding." });
@@ -262,10 +231,6 @@ app.post('/request_tutorial', async (req, res) => {
 
 app.post('/get_all_notifications', async (req, res) => {
   const validator = require('validator');
-  const database = require('./services/database');
-
-  const database_connection = new database("Tutum_Nichita", "EajHKuViBCaL62Sj", "service_loop");
-  let db_con_response = await database_connection.connect();
 
   for (var key in req.body) {
     if (req.body[key] === "") {
@@ -279,66 +244,33 @@ app.post('/get_all_notifications', async (req, res) => {
 });
 
 app.post('/set_notification_to_read', async (req, res) => {
-  let database = require('./services/database')
-
-  const database_connection = new database("Tutum_Nichita", "EajHKuViBCaL62Sj", "service_loop");
-  let db_con_response = await database_connection.connect();
-
   res.json(await database_connection.set_notification_to_read(req.body.notification_id));
   return;
 });
 
 app.post('/get_all_posts', async (req, res) => {
-  let database = require('./services/database')
-
-  const database_connection = new database("Tutum_Nichita", "EajHKuViBCaL62Sj", "service_loop");
-  let db_con_response = await database_connection.connect();
-
-  //DELETE EVERYTHING
-  //await database_connection.reset();
-
   res.json(await database_connection.get_all_elegible_posts(req.body.email, req.body.user_modules));
   return;
 });
 
 app.post('/post_accepted', async (req, res) => {
-  let database = require('./services/database')
-
-  const database_connection = new database("Tutum_Nichita", "EajHKuViBCaL62Sj", "service_loop");
-  let db_con_response = await database_connection.connect();
-
   res.json(await database_connection.accept_post(req.body.tutor_email, req.body.tutor_name, req.body.post_id, req.body.user_avatar));
   return;
 });
 
 app.post('/get_notification_posts', async (req, res) => {
-  let database = require('./services/database')
-
-  const database_connection = new database("Tutum_Nichita", "EajHKuViBCaL62Sj", "service_loop");
-  let db_con_response = await database_connection.connect();
-
   res.json(await database_connection.get_notification_posts(req.body.notification_posts_id));
   return;
 });
 
 //TEST THIS
 app.post('/get_my_requested_posts', async (req, res) => {
-  let database = require('./services/database')
-
-  const database_connection = new database("Tutum_Nichita", "EajHKuViBCaL62Sj", "service_loop");
-  let db_con_response = await database_connection.connect();
-
   res.json(await database_connection.get_all_users_tutorials(req.body.users_email));
   return;
 });
 
 //TEST THIS
 app.post('/get_all_tutor_tutorials', async (req, res) => {
-  let database = require('./services/database')
-
-  const database_connection = new database("Tutum_Nichita", "EajHKuViBCaL62Sj", "service_loop");
-  let db_con_response = await database_connection.connect();
-
   res.json(await database_connection.get_all_tutor_tutorials(req.body.users_email));
   return;
 });
@@ -349,11 +281,7 @@ app.post('/offer_agreement', async (req, res) => {
     res.json({ error: true, response: "Please fill in all fields before proceeding." });
   }
 
-  const database = require('./services/database');
   const offer_agreement = require('./services/offer_agreement');
-
-  const database_connection = new database("Tutum_Nichita", "EajHKuViBCaL62Sj", "service_loop");
-  let db_con_response = await database_connection.connect();
 
   res.json(await offer_agreement.offer_agreement(database_connection, req.body.tutorial_id, req.body.tutorial_date.substring(0, 10), req.body.tutorial_time, req.body.tutorial_end_time, req.body.tutor_signature, req.body.tutor_avatar));
   return;
@@ -361,11 +289,7 @@ app.post('/offer_agreement', async (req, res) => {
 
 //TEST THIS
 app.post('/accept_agreement', async (req, res) => {
-  const database = require('./services/database');
   const accept_agreement = require('./services/accept_agreement');
-
-  const database_connection = new database("Tutum_Nichita", "EajHKuViBCaL62Sj", "service_loop");
-  let db_con_response = await database_connection.connect();
 
   res.json(await accept_agreement.accept_agreement(database_connection, req.body.tutorial_id, req.body.student_signature));
   return;
@@ -373,11 +297,7 @@ app.post('/accept_agreement', async (req, res) => {
 
 //TEST THIS
 app.post('/reject_agreement', async (req, res) => {
-  const database = require('./services/database');
   const accept_agreement = require('./services/accept_agreement');
-
-  const database_connection = new database("Tutum_Nichita", "EajHKuViBCaL62Sj", "service_loop");
-  let db_con_response = await database_connection.connect();
 
   res.json(await database_connection.reject_agreement(req.body.tutorial_id));
   return;
@@ -385,11 +305,7 @@ app.post('/reject_agreement', async (req, res) => {
 
 //TEST THIS
 app.post('/validate_digital_signatures', async (req, res) => {
-  const database = require('./services/database');
   const verify_digital_signatures_handler = require('./services/verify_digital_signatures.js');
-
-  const database_connection = new database("Tutum_Nichita", "EajHKuViBCaL62Sj", "service_loop");
-  let db_con_response = await database_connection.connect();
 
   res.json(await verify_digital_signatures_handler.verify_digital_signatures(database_connection, req.body));
   return;
@@ -408,11 +324,7 @@ app.post('/load_blockchain_content', async (req, res) => {
 
 //TEST THIS
 app.post('/update_avatar', async (req, res) => {
-  const database = require('./services/database');
   const avatar = require('./services/update_avatar');
-
-  const database_connection = new database("Tutum_Nichita", "EajHKuViBCaL62Sj", "service_loop");
-  let db_con_response = await database_connection.connect();
 
   let response = await avatar.update_avatar(database_connection, req.body.email, req.body.image);
 
@@ -422,11 +334,6 @@ app.post('/update_avatar', async (req, res) => {
 
 //TEST THIS
 app.post('/edit_skills', async (req, res) => {
-  const database = require('./services/database');
-
-  const database_connection = new database("Tutum_Nichita", "EajHKuViBCaL62Sj", "service_loop");
-  let db_con_response = await database_connection.connect();
-
   let response = await database_connection.update_user(req.body.users_email, { user_modules: req.body.skills });
 
   res.json(response);
@@ -449,14 +356,9 @@ app.post('/push_notification', async (req, res) => {
 
 //------------- New Forgot Password & change Details ---------
 app.post('/send_forgot_password', async (req, res) => {
-
-  let database = require('./services/database');
   // const change_password = require('./services/change_password');
   const SMS = require('./services/SMS');
   const sms_controller = new SMS(global.sms_app_key, global.sms_api_key, global.sms_secret_key);
-
-  const database_connection = new database("Tutum_Nichita", "EajHKuViBCaL62Sj", "service_loop");
-  database_connection.connect();
 
   //get user
   let user = await database_connection.find_user_by_email(req.body.users_email);
@@ -473,7 +375,6 @@ app.post('/send_forgot_password', async (req, res) => {
 
     resolve({ error: false, response: "Pin has been sent via SMS!" });
   }).catch((exception) => {
-    database_connection.disconnect();
     resolve({ error: true, response: exception });
   });
 
@@ -481,12 +382,6 @@ app.post('/send_forgot_password', async (req, res) => {
 });
 
 app.post('/change_password', async (req, res) => {
-
-  let database = require('./services/database');
-
-  const database_connection = new database("Tutum_Nichita", "EajHKuViBCaL62Sj", "service_loop");
-  database_connection.connect();
-
   if (req.body.new_password === req.body.password_confirm) {
 
     const bcrypt = require('bcrypt');
@@ -534,12 +429,6 @@ app.post('/change_password', async (req, res) => {
 });
 
 app.post('/change_phone', async (req, res) => {
-
-  let database = require('./services/database');
-
-  const database_connection = new database("Tutum_Nichita", "EajHKuViBCaL62Sj", "service_loop");
-  database_connection.connect();
-
   response = database_connection.change_user_phone(req.body.users_email, req.body.user_phone_number);
 
   res.json(response);
@@ -547,12 +436,9 @@ app.post('/change_phone', async (req, res) => {
 });
 
 app.post('/cancel_tutorial', async (req, res) => {
-  const database = require('./services/database');
   const Blockchain = require('./services/Blockchain');
   const blockchain_controller = new Blockchain(global.blockchain_api_key);
 
-  const database_connection = new database("Tutum_Nichita", "EajHKuViBCaL62Sj", "service_loop");
-  let db_con_response = await database_connection.connect();
   let tutorial = req.body.tutorial;
 
   //Remove tutorial
@@ -580,12 +466,8 @@ app.post('/cancel_tutorial', async (req, res) => {
 });
 
 app.post('/begin_tutorial', async (req, res) => {
-  const database = require('./services/database');
   const Blockchain = require('./services/Blockchain');
   const blockchain_controller = new Blockchain(global.blockchain_api_key);
-
-  const database_connection = new database("Tutum_Nichita", "EajHKuViBCaL62Sj", "service_loop");
-  let db_con_response = await database_connection.connect();
 
   //Begin tutorial
   let tutorial = await database_connection.begin_tutorial(req.body.tutorial_id);
@@ -606,12 +488,8 @@ app.post('/begin_tutorial', async (req, res) => {
 });
 
 app.post('/finish_tutorial', async (req, res) => {
-  const database = require('./services/database');
   const Blockchain = require('./services/Blockchain');
   const blockchain_controller = new Blockchain(global.blockchain_api_key);
-
-  const database_connection = new database("Tutum_Nichita", "EajHKuViBCaL62Sj", "service_loop");
-  let db_con_response = await database_connection.connect();
 
   //Begin tutorial
   let tutorial = await database_connection.finish_tutorial(req.body.tutorial_id);
@@ -629,12 +507,8 @@ app.post('/finish_tutorial', async (req, res) => {
 });
 
 app.post('/rate_tutor', async (req, res) => {
-  const database = require('./services/database');
   const Blockchain = require('./services/Blockchain');
   const blockchain_controller = new Blockchain(global.blockchain_api_key);
-
-  const database_connection = new database("Tutum_Nichita", "EajHKuViBCaL62Sj", "service_loop");
-  let db_con_response = await database_connection.connect();
 
   //Rate tutor
   let tutor = await database_connection.find_id_by_email(req.body.tutorial.post_tutor_email);
@@ -660,14 +534,12 @@ app.post('/rate_tutor', async (req, res) => {
 if (global.localhost) {
   server = app.listen(3001, async function () {
     console.log('App started on Localhost!');
+    await database_connection.connect();
+    console.log("<--------------->")
+    console.log(database_connection)
     
-    // let database = require('./services/database')
-
-    // const database_connection = new database("Tutum_Nichita", "EajHKuViBCaL62Sj", "service_loop");
-    // let db_con_response = await database_connection.connect();
-
-    // //DELETE EVERYTHING
-    // await database_connection.reset();
+    //DELETE EVERYTHING
+    //await database_connection.reset();
 
     Live_Updates_Controller = new Live_Updates(server, app);
     Live_Updates_Controller.connect();
@@ -675,11 +547,6 @@ if (global.localhost) {
 } else {
   server = app.listen(process.env.ALWAYSDATA_HTTPD_PORT, process.env.ALWAYSDATA_HTTPD_IP, async function () {
     console.log('App started on Alwaysdata!');
-
-    // let database = require('./services/database')
-
-    // const database_connection = new database("Tutum_Nichita", "EajHKuViBCaL62Sj", "service_loop");
-    // let db_con_response = await database_connection.connect();
 
     // //DELETE EVERYTHING
     // await database_connection.reset();

@@ -15,10 +15,8 @@ let check_user_credentials = async function check_user_credentials(users_email, 
     let password_hash = await database_connection.find_id_by_email(users_email);
 
     if (password_hash.response === "No user found!") {
-        database_connection.disconnect();
         return false;
     } else {
-        database_connection.disconnect();
         let password_correct = await bcrypt.compare(users_password, password_hash.response.user_password)
 
         if(password_correct) {
@@ -67,14 +65,10 @@ let login_user = async function login_user(users_email, users_password, database
             result.user_modules = password_correct.user.response.user_modules;
         }
 
-        database_connection.disconnect();
-
         return result;
     } else {
         result.status = 401;
         result.error = 'Email or password is incorrect.';
-
-        database_connection.disconnect();
 
         return result;
     }

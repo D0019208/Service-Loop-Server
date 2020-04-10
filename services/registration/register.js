@@ -139,7 +139,6 @@ let create_new_user = async function create_new_user(users_full_name, users_pass
     if (filtering_response.error) {
         console.log("Exit")
         console.log(filtering_response)
-        database_connection.disconnect();
         return filtering_response;
     }
 
@@ -184,24 +183,20 @@ let create_new_user = async function create_new_user(users_full_name, users_pass
                         await database_connection.update_user(users_email, { user_avatar: "https://d00192082.alwaysdata.net/ServiceLoopServer/resources/images/" + users_email + ".jpg", user_blockchain_api_token: blockchain_user_added.response.ApiToken, user_blockchain_id: blockchain_user_added.response.Id, user_blockchain_identity_name: blockchain_user_added.response.IdentityName });
                     }
 
-                    database_connection.disconnect();
                     return update_response;
                 })
                 .catch((error) => {
-                    database_connection.disconnect();
                     console.log("Promises rejected")
                     console.log(error)
                     return { error: true, response: "error" };
                 });
         } else {
-            database_connection.disconnect();
             console.log(user_insert_response.response);
             return;
         }
 
     } catch (ex) {
         //Maybe this line is redundant
-        database_connection.disconnect();
         console.log(ex);
         return;
     }

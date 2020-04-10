@@ -31,6 +31,9 @@ class Blockchain {
 
     //Set a value in blockchain
     async add_transaction_to_blockchain(key, data) {
+        if(global.localhost) {
+            return "Stop wasting credit!";
+        }
         var [error, pendingResponse, data] = await this.blockchain.invoke("add_transaction", {}, { args: [key, data] })
         console.log(error, pendingResponse, data);
     }

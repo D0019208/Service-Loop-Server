@@ -49,7 +49,7 @@ class database {
   //Function to close the mongoDB connection (80 active connections causes an error)
   disconnect() {
     mongoose.connection.close(function () {
-      console.log("closed db connection");
+      console.log("Connection closed");
     });
   }
 
@@ -272,11 +272,9 @@ class database {
 
     return new Promise((resolve, reject) => {
       userModel.findOneAndUpdate(filter, update).then(result => {
-        this.disconnect();
         resolve({ error: false, response: "User elevated successfully!" });
       })
         .catch((exception) => {
-          this.disconnect();
           resolve({ error: true, response: exception });
         });
     });
@@ -321,11 +319,8 @@ class database {
         newPost.save(async function (err, post) {
           //If an error has occured, we do not create a notification but return an Object with the "error" key set to true and the error message in the "response" key
           if (err) {
-            contenxt.disconnect();
             resolve({ error: true, response: err });
           } else {
-            console.log("This post")
-            console.log(post);
             //If there is no error, we create a notification for the user stating that their request has been sent
             let notification_response = await contenxt.create_notification("Tutorial request sent", "You have successfully requested a tutorial for the following modules: " + request_modules.join(', ') + ".<br><br> A tutor will be in contact with you as soon as possible.", post.std_email, ["Tutorial request sent"], { post_id: post._id, modules: request_modules }, user_avatar);
 
@@ -335,14 +330,11 @@ class database {
 
               //If the notification is sent, we return an object with the "error" key set to false along with a response
               if (!tutor_notification_response.error) {
-                contenxt.disconnect();
                 resolve({ error: false, debug_message: "Post created successfully.", response: [post, notification_response.response, tutor_notification_response.response] });
               } else {
-                contenxt.disconnect();
                 resolve({ error: true, response: notification_response.response });
               }
             } else {
-              contenxt.disconnect();
               resolve({ error: true, response: notification_response.response });
             }
           }
@@ -530,7 +522,6 @@ class database {
           notificationModelSchema.find(filter).sort({ notification_posted_on: -1 }).then((notifications) => {
             //If there are no tutor or normal notifications to display, we send back a string
             if (!notifications.length && tutor_notifications.response === "There are no notifications to display!") {
-              this.disconnect();
               resolve({ error: true, response: "There are no notifications to display!" });
             } else {
               //If there are either normal or tutor notifications, we add the tutor notifications to the normal notifications and send them to the user
@@ -540,19 +531,15 @@ class database {
                 }
               }
 
-              this.disconnect();
-
               resolve({ error: false, response: notifications });
             }
 
           })
             .catch((exception) => {
-              this.disconnect();
               resolve({ error: true, response: exception });
             });
         });
       } else {
-        this.disconnect();
         return tutor_notifications.response;
       }
     } else {
@@ -563,15 +550,12 @@ class database {
         notificationModelSchema.find(filter).sort({ notification_posted_on: -1 }).then((notifications) => {
 
           if (notifications.length !== 0) {
-            this.disconnect();
             resolve({ error: false, response: notifications });
           } else {
-            this.disconnect();
             resolve({ error: false, response: 'There are no notifications to display!' });
           }
         })
           .catch((exception) => {
-            this.disconnect();
             console.log("error")
             resolve({ error: true, response: exception });
           });
@@ -594,17 +578,14 @@ class database {
     return new Promise((resolve, reject) => {
       postModel.find(filter).sort({ post_posted_on: -1 }).then((posts) => {
         if (!posts || posts.length == 0) {
-          this.disconnect();
           resolve({ error: false, response: "There are no posts to display!" });
         } else {
-          this.disconnect();
           resolve({ error: false, response: posts });
         }
 
       })
         .catch((exception) => {
           console.log("error")
-          this.disconnect();
           resolve({ error: true, response: exception });
         });
     });
@@ -618,17 +599,14 @@ class database {
     return new Promise((resolve, reject) => {
       postModel.find(filter).sort({ post_posted_on: -1 }).then((posts) => {
         if (!posts || posts.length == 0) {
-          this.disconnect();
           resolve({ error: false, response: "There are no posts to display!" });
         } else {
-          this.disconnect();
           resolve({ error: false, response: posts });
         }
 
       })
         .catch((exception) => {
           console.log("error")
-          this.disconnect();
           resolve({ error: true, response: exception });
         });
     });
@@ -642,16 +620,13 @@ class database {
     return new Promise((resolve, reject) => {
       postModel.find(filter).sort({ post_posted_on: -1 }).then((posts) => {
         if (!posts || posts.length == 0) {
-          this.disconnect();
           resolve({ error: false, response: "There are no posts to display!" });
         } else {
-          this.disconnect();
           resolve({ error: false, response: posts });
         }
       })
         .catch((exception) => {
           console.log("error")
-          this.disconnect();
           resolve({ error: true, response: exception });
         });
     });
@@ -673,11 +648,9 @@ class database {
 
     return new Promise((resolve, reject) => {
       notificationModelSchema.findOneAndUpdate(filter, update).then(result => {
-        this.disconnect();
         resolve("Notification updated successfully!");
       })
         .catch((exception) => {
-          this.disconnect();
           resolve({ error: true, response: exception });
         });
     });
@@ -691,8 +664,7 @@ class database {
     const update = { post_tutor_email: tutor_email, post_tutor_name: tutor_name, post_status: "In negotiation" };
 
     let post_status = await this.get_post_status(post_id);
-    console.log("post status")
-    console.log(post_status)
+
     if (!post_status.error) {
       //Tutor notification
       let notification_response_tutor = await this.create_notification("Tutorial request accepted", "You have accepted a tutorial.<br><br>Please fill out the agreement form by clicking the below button or locating this tutorial in 'My tutorials'", tutor_email, ["Tutorial request accepted"], { post_id: post_id }, user_avatar);
@@ -702,17 +674,14 @@ class database {
           postModel.findOneAndUpdate(filter, update, { new: true }).then(async result => {
             let notification_response_student = await this.create_notification("Tutorial accepted", tutor_name + " has accepted your request '" + result.post_title + "'.<br><br>The tutor will contact you via email.", result.std_email, ["Tutorial request accepted"], { post_id: post_id }, user_avatar);
             blockchain_controller.add_transaction_to_blockchain(post_id, { title: "Tutorial accepted", content: "'" + tutor_name + "' has accepted to tutor '" + result.std_name + "' for the tutorial '" + result.post_title + "'" });
-            this.disconnect();
+
             resolve({ error: false, response: { tutor_notification: notification_response_tutor.response, student_notification: notification_response_student, post: result } });
           });
         });
       } else {
-        console.log(notification_response_tutor)
-        this.disconnect();
         return { error: true, response: "Error creating a notification." };
       }
     } else {
-      this.disconnect();
       return { error: true, response: "The post you wish to tutor is no longer available!" };
     }
   }
@@ -756,12 +725,10 @@ class database {
 
   //TEST THIS
   get_notification_posts(notification_posts_id) {
-    console.log(notification_posts_id)
     const postModel = require('../models/post');
 
     return new Promise((resolve, reject) => {
       postModel.find({ _id: { "$in": notification_posts_id } }).then((posts) => {
-        this.disconnect();
         resolve({ error: false, response: posts });
       });
     });
@@ -769,7 +736,6 @@ class database {
 
   //TEST THIS
   get_digital_certificate_details(email) {
-    console.log(email)
     const userModel = require('../models/users');
 
     return new Promise((resolve, reject) => {
@@ -849,7 +815,6 @@ class database {
   // }
 
   update_post_agreement_status(post_id, update_object, room_taken = false) {
-    console.log(post_id);
     const postModel = require('../models/post');
 
     const filter = { _id: post_id };
@@ -907,8 +872,6 @@ class database {
   }
 
   update_user(email, update) {
-    console.log(email);
-    console.log(update)
     const userSchema = require('../models/users');
 
     const filter = { user_email: email };
@@ -998,11 +961,9 @@ class database {
     //update user
     userModel.findOneAndUpdate(filter, update).then(result => {
       console.log("Password changed")
-      this.disconnect();
       //resolve({ error: false, response: "New Password successfully changed!" });
     })
       .catch((exception) => {
-        this.disconnect();
         // resolve({ error: true, response: exception });
       });
 
@@ -1021,10 +982,8 @@ class database {
 
       return new Promise((resolve, reject) => {
         userModel.findOneAndUpdate(filter, update).then(result => {
-          this.disconnect();
           resolve({ error: false, response: "New Profile details successfully changed!" });
         }).catch((exception) => {
-          this.disconnect();
           resolve({ error: true, response: exception });
         });
 
@@ -1089,7 +1048,6 @@ class database {
 
         tutored_tutorials_count = { my_tutorials: { open_count: my_open_tutorials, pending_count: my_pending_tutorials, ongoing_count: my_ongoing_tutorials, done_count: my_done_tutorials }, my_tutored_tutorials: { pending_count: tutored_tutorials_pending, ongoing_count: tutored_tutorials_ongoing, done_count: tutored_tutorials_done } };
 
-        console.log(tutored_tutorials_count);
         resolve(tutored_tutorials_count);
       }).catch((exception) => {
         resolve({ error: true, response: exception });
