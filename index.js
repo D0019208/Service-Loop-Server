@@ -398,7 +398,6 @@ app.post('/forgot_password', async (req, res) => {
     }
     else {
       response = "Password is not valid format";
-      console.log("Password is not valid format");
       res.json(response);
       return;
     }
@@ -406,7 +405,6 @@ app.post('/forgot_password', async (req, res) => {
   }
   else {
     response = "Confirm & New password did not match";
-    console.log("Confirm & New password did not matchh");
     res.json(response);
     return;
   }
@@ -593,7 +591,7 @@ if (global.localhost) {
     await database_connection.connect();
 
     //DELETE EVERYTHING
-    await database_connection.reset();
+    //await database_connection.reset();
 
     Live_Updates_Controller = new Live_Updates(server, app);
     Live_Updates_Controller.connect();

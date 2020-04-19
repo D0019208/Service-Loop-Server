@@ -42,7 +42,7 @@ let login_user = async function login_user(users_email, users_password, database
     const jwt = require('jsonwebtoken');
     let result = {};
     //process.env.JWT_SECRET
-    let JWT_SECRET = 'addjsonwebtokensecretherelikeQuiscustodietipsoscustodes';
+    let JWT_SECRET = 'rk-yDPaHYm2VrePcMaL4xp3cgMTMBEuu7otKr31yvneSiH3LuYRSE8SNk0PV7xFWVZd1cE-34MqBUlIQTWq8TaZNtvMdVDiBaTNyI46rptomt-zDFJih5MjLZdbDsr4UH8CRaigFlAQKqS0ZtS84dTZKN-SlcZhuBzV-MWvnbxz3ehTomMuhCSV91IT3E0DlLf4A2P8mzw96tKOvsNq1K6yEYdKwgdn88CgxPBCmTkaaMxtfnyar0v_QbW5m7NJ37X4mvBLQt3G3bFcQmB0NZUq3OBXGw8rw2LzSB4W5ylOK1e9-T8SQtUMsjGyy5hlQdcK6NW7a_OoQpBlehOUIjw';
 
     //Call a function to compare the plaintext password of the user against the hash from the database
     let password_correct = await check_user_credentials(users_email, users_password, database_connection);
