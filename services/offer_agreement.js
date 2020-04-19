@@ -21,6 +21,9 @@ let offer_agreement = async function offer_agreement(database_connection, post_i
 
         let digital_certificate = await database_connection.get_digital_certificate_details(update_post_agreement_status_response.post_tutor_email);
 
+        console.log("Tut signa")
+console.log(tutor_signature)
+
         //return {t: digital_certificate, l: update_post_agreement_status_response};
         let pdf_path_and_name = await functions.create_agreement_pdf({ tutorial_date: tutorial_date, tutorial_time: tutorial_time }, { tutor_signature: tutor_signature, student_signature: null }, update_post_agreement_status_response);
 

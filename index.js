@@ -7,6 +7,9 @@ const path = require('path');
 const Push_Notifications = require('./services/Push_Notifications');
 const push_controller = new Push_Notifications("c08fd8bd-bfbf-4dd3-bc07-61d214842ccd", "MGMxYzc3NjEtZjFkOC00MmIwLTkyYmMtMzVmMjgzZDg4MzM2");
 
+const database = require('./services/database');
+const database_connection = new database("Tutum_Nichita", "EajHKuViBCaL62Sj", "service_loop");;
+
 var server;
 
 global.blockchain_api_key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJBcGlLZXkiOiJBMjBNM1haLTRDSzRNTjUtSkNRMDJNQi00WkFFSFAzIiwiQXBpU2VjcmV0IjoianUyUjRTbHNpMzVPakdjIiwiUGFzc3BocmFzZSI6IjIyNDBjNmEzMjJjMjRlNzgyMmM1YmM3ZTM1Y2RkNWI0IiwiaWF0IjoxNTgyNjM1Mjc2fQ.Hi92qvQhQW4R2Sh2OuUMTNyx4dY69wnyJq6Z49maOsE";
@@ -14,11 +17,7 @@ global.sms_app_key = "3i1ivu6elylunazito7y";
 global.sms_api_key = "112a600ad7ce7b679505469dd5079444cbdc1344";
 global.sms_secret_key = "3i5u7ezara9o5yhy6u8a";
 
-let database = require('./services/database')
-
-const database_connection = new database("Tutum_Nichita", "EajHKuViBCaL62Sj", "service_loop");
-
-global.localhost = false;
+global.localhost = true;
 
 var Live_Updates_Controller;
 
@@ -151,7 +150,7 @@ app.post('/verify_token', async (req, res) => {
 
   try {
     //process.env.JWT_SECRET
-    let JWT_SECRET = 'addjsonwebtokensecretherelikeQuiscustodietipsoscustodes';
+    let JWT_SECRET = 'rk-yDPaHYm2VrePcMaL4xp3cgMTMBEuu7otKr31yvneSiH3LuYRSE8SNk0PV7xFWVZd1cE-34MqBUlIQTWq8TaZNtvMdVDiBaTNyI46rptomt-zDFJih5MjLZdbDsr4UH8CRaigFlAQKqS0ZtS84dTZKN-SlcZhuBzV-MWvnbxz3ehTomMuhCSV91IT3E0DlLf4A2P8mzw96tKOvsNq1K6yEYdKwgdn88CgxPBCmTkaaMxtfnyar0v_QbW5m7NJ37X4mvBLQt3G3bFcQmB0NZUq3OBXGw8rw2LzSB4W5ylOK1e9-T8SQtUMsjGyy5hlQdcK6NW7a_OoQpBlehOUIjw';
 
     let user_response = await database_connection.find_user_by_email(email);
     let tutorials_count = await database_connection.find_tutored_tutorials(email);
@@ -176,7 +175,6 @@ app.post('/verify_token', async (req, res) => {
 
 app.post('/localhost', async (req, res) => {
   let email = req.body.email;
-
   let user_response = await database_connection.find_user_by_email(email);
 
   let tutorials_count = await database_connection.find_tutored_tutorials(email);
@@ -297,8 +295,6 @@ app.post('/accept_agreement', async (req, res) => {
 
 //TEST THIS
 app.post('/reject_agreement', async (req, res) => {
-  const accept_agreement = require('./services/accept_agreement');
-
   res.json(await database_connection.reject_agreement(req.body.tutorial_id));
   return;
 });
@@ -363,20 +359,57 @@ app.post('/send_forgot_password', async (req, res) => {
   //get user
   let user = await database_connection.find_user_by_email(req.body.users_email);
 
-  new Promise((resolve, reject) => {
-    //get phone number 
-    let phone_number = user.response.user_phone_number;
-    console.log("\n" + phone_number);
+  //get phone number 
+  let phone_number = user.response.user_phone_number;
+  console.log("\n" + phone_number);
 
-    //send code
-    let data = { mobile: phone_number, country_code: '+353', service: 'SMS' }
-    response = sms_controller.send_sms(data);
+  //send code
+  let data = { mobile: phone_number, country_code: '+353', service: 'SMS' }
+
+  response = await sms_controller.send_sms(data);
+  console.log(response);
+  res.json(response);
+
+});
+
+app.post('/forgot_password', async (req, res) => {
+  if (req.body.new_password === req.body.password_confirm) {
+
+    const bcrypt = require('bcrypt');
+    const saltRounds = 10;
+
+    let user = await database_connection.find_user_by_email(req.body.users_email)
+
+    //const validator = require('validator');
+    const password_input = require('./services/registration/filter_registration_input');
+
+    //Valiate user data
+    let valid = password_input.validate_password_input(req.body.users_email, req.body.new_password, req.body.password_confirm);
+    if (!valid.error) {
+
+      //hash password       
+      let hash = await bcrypt.hash(req.body.new_password, saltRounds);
+      // update doc with new hashed  password
+      database_connection.change_user_password(req.body.users_email, hash);
+      response = "Password changed";
+      res.json(response);
+      return;
+
+    }
+    else {
+      response = "Password is not valid format";
+      console.log("Password is not valid format");
+      res.json(response);
+      return;
+    }
+
+  }
+  else {
+    response = "Confirm & New password did not match";
+    console.log("Confirm & New password did not matchh");
     res.json(response);
-
-    resolve({ error: false, response: "Pin has been sent via SMS!" });
-  }).catch((exception) => {
-    resolve({ error: true, response: exception });
-  });
+    return;
+  }
 
 
 });
@@ -389,14 +422,21 @@ app.post('/change_password', async (req, res) => {
 
     let user = await database_connection.find_user_by_email(req.body.users_email);
 
-    let pword = user.response.user_password;
-    // check if confirm & new password  match
-    let match = bcrypt.compare(req.body.users_email, pword, function (err, result) {
-      result == true
-    });
+    let pword = await user.response.user_password;
 
-    if (match = true) {
-      console.log("Confirm & new Match");
+    //let hash2 = await bcrypt.hash(req.body.old_password, saltRounds);
+    // check if old  match
+    let match = await bcrypt.compareSync(req.body.old_password, pword);
+
+    //console.log("Password Old + New Match = ");
+
+    if (await bcrypt.compareSync(req.body.new_password, pword) == true) {
+      response = "New Password must be not the same as old Password";
+      res.json(response);
+      return;
+    }
+
+    if (match == true) {
       //const validator = require('validator');
       const password_input = require('./services/registration/filter_registration_input');
 
@@ -407,20 +447,28 @@ app.post('/change_password', async (req, res) => {
         //hash password       
         let hash = await bcrypt.hash(req.body.new_password, saltRounds);
         // update doc with new hashed  password
-        response = database_connection.change_user_password(req.body.users_email, hash);
+        database_connection.change_user_password(req.body.users_email, hash);
+        response = "Password changed";
         res.json(response);
         return;
 
       }
+      else {
+        response = "Password is not valid format";
+        res.json(response);
+        return;
+      }
     }
+
     else {
-      response = "Password Incorrect";
+      response = "Old Password Incorrect";
       res.json(response);
       return;
     }
+
   }
   else {
-    response = "Password & confirm password did not match"
+    response = "Confirm & New password did not match";
     res.json(response);
     return;
   }
@@ -429,9 +477,17 @@ app.post('/change_password', async (req, res) => {
 });
 
 app.post('/change_phone', async (req, res) => {
-  response = database_connection.change_user_phone(req.body.users_email, req.body.user_phone_number);
+  let check = await database_connection.change_user_phone(req.body.users_email, req.body.user_phone_number);
+  console.log(check.error);
 
-  res.json(response);
+  if (check.error == "true") {
+    res.json(check.response);
+    return;
+  }
+  else {
+    res.json(check.response);
+    return;
+  }
 
 });
 
@@ -494,11 +550,11 @@ app.post('/finish_tutorial', async (req, res) => {
   //Begin tutorial
   let tutorial = await database_connection.finish_tutorial(req.body.tutorial_id);
 
-  let student_notification = await database_connection.create_notification("Tutorial finished", "The tutorial '" + tutorial.post_title + "' has been completed!<br><br>Thank you for using Student Loop!", tutorial.std_email, ["Tutorial finished"], { post_id: req.body.tutorial_id }, req.body.avatar);
+  let student_notification = await database_connection.create_notification("Tutorial finished", "The tutorial '" + tutorial.post_title + "' has been completed! <br><br> Thank you for using Student Loop!", tutorial.std_email, ["Tutorial finished"], { post_id: req.body.tutorial_id }, req.body.avatar);
 
   //Get tutors avatar
   let tutor_avatar = await database_connection.find_id_by_email(tutorial.post_tutor_email);
-  let tutor_notification = await database_connection.create_notification("Tutorial finished", "The tutorial '" + tutorial.post_title + "' has been completed!<br><br>Thank you for using Student Loop!", tutorial.post_tutor_email, ["Tutorial finished"], { post_id: req.body.tutorial_id }, tutor_avatar.response.user_avatar);
+  let tutor_notification = await database_connection.create_notification("Tutorial finished", "The tutorial '" + tutorial.post_title + "' has been completed! <br><br> Thank you for using Student Loop!", tutorial.post_tutor_email, ["Tutorial finished"], { post_id: req.body.tutorial_id }, tutor_avatar.response.user_avatar);
 
   blockchain_controller.add_transaction_to_blockchain(req.body.tutorial_id, { title: "Tutorial finished", content: "The tutorial '" + tutorial.post_title + "' has just been finished by the tutor." });
 
@@ -527,7 +583,7 @@ app.post('/rate_tutor', async (req, res) => {
 
   blockchain_controller.add_transaction_to_blockchain(req.body.tutorial_id, { title: "Tutor has been rated", content: "The student has give you a rating of " + req.body.rating + "/5 for the tutorial '" + req.body.tutorial.post_title + "'." });
 
-  res.json({ updated_tutorial: new_tutorial, rating: rating });
+  res.json({ updated_tutorial: new_tutorial });
   return;
 });
 
@@ -535,11 +591,9 @@ if (global.localhost) {
   server = app.listen(3001, async function () {
     console.log('App started on Localhost!');
     await database_connection.connect();
-    console.log("<--------------->")
-    console.log(database_connection)
-    
+
     //DELETE EVERYTHING
-    //await database_connection.reset();
+    await database_connection.reset();
 
     Live_Updates_Controller = new Live_Updates(server, app);
     Live_Updates_Controller.connect();
@@ -547,9 +601,10 @@ if (global.localhost) {
 } else {
   server = app.listen(process.env.ALWAYSDATA_HTTPD_PORT, process.env.ALWAYSDATA_HTTPD_IP, async function () {
     console.log('App started on Alwaysdata!');
+    await database_connection.connect();
 
-    // //DELETE EVERYTHING
-    // await database_connection.reset();
+    //DELETE EVERYTHING
+    //await database_connection.reset();
 
     Live_Updates_Controller = new Live_Updates(server, app);
     Live_Updates_Controller.connect();

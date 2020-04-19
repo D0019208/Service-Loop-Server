@@ -1132,4 +1132,3 @@ class database {
 //mongodb+srv://Tutum_Nichita:EajHKuViBCaL62Sj@tutum-qips2.azure.mongodb.net/service_loop?retryWrites=true&w=majority
 
 module.exports = database;
-

@@ -238,6 +238,9 @@ let create_agreement_pdf = function create_agreement_pdf(tutorial_information, s
         });
         doc.moveDown();
         //add the image
+
+        console.log(signatures.tutor_signature)
+
         doc.text(" Signed: " + "\n ") + doc.image(signatures.tutor_signature, {
             scale: 0.30,
             align: 'left'
