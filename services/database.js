@@ -529,6 +529,12 @@ class database {
                 for (let i = 0; i < tutor_notifications.response.length; i++) {
                   notifications.push(tutor_notifications.response[i]);
                 }
+
+                notifications = notifications.sort(function(a, b) {
+                  a = new Date(a.notification_posted_on);
+                  b = new Date(b.notification_posted_on);
+                  return a>b ? -1 : a<b ? 1 : 0;
+              });
               }
 
               resolve({ error: false, response: notifications });
@@ -1024,7 +1030,7 @@ class database {
               my_open_tutorials++;
             }
 
-            if (results[i].post_status == "Pending" && results[i].post_tutor_email == email) {
+            if (results[i].post_status == "In negotiation" && results[i].post_tutor_email == email) {
               tutored_tutorials_pending++;
             } else if (results[i].post_status == "Pending" && results[i].std_email == email) {
               my_pending_tutorials++;

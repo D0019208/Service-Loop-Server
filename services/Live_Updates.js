@@ -65,6 +65,14 @@ class Live_Updates {
                 this.sendRateTutor(socket, data);
             });
 
+            socket.on('cancel_tutorial', (data) => {
+                this.cancelTutorialNotification(socket, data);
+            });
+
+            socket.on('remove_open_post', (data) => {
+                this.removeOpen(socket, data);
+            });
+
             //Update the socket once a user becomes a tutor (add modules)
             socket.on('update_socket', (data) => {
                 for (let i = 0; i < this.users_connected.length; i++) {
@@ -111,6 +119,37 @@ class Live_Updates {
             if (this.users_connected[i].email === data.the_notification.std_email) {
                 socket.to(this.users_connected[i].socket_id).emit("tutorial_has_finished", { response: data.the_notification, post: data.the_post });
             }
+        }
+    }
+
+    cancelTutorialNotification(socket, data) {
+        for (let i = 0; i < this.users_connected.length; i++) {
+            if (this.users_connected[i].email === data.the_notification.std_email) {
+                socket.to(this.users_connected[i].socket_id).emit("tutorial_has_been_canceled", { response: data.the_notification, post: data.the_post });
+            }
+        }
+    }
+
+    removeOpen(socket, data) {
+        console.log("data2)")
+        console.log(data)
+        let elegible_users = [];
+        for (let i = 0; i < this.users_connected.length; i++) {
+            console.log(this.users_connected[i].modules);
+
+            for (let j = 0; j < this.users_connected[i].modules.length; j++) {
+                if (this.users_connected[i].modules[j] === data.the_post.post_modules[0]) {
+                    elegible_users.push(this.users_connected[i]);
+                }
+            }
+        }
+
+        console.log("Elegible users");
+        console.log(elegible_users);
+
+        for (let i = 0; i < elegible_users.length; i++) {
+            //socket.emit('news', { hello: elegible_users, socket_id: elegible_users[i].socket_id });
+            socket.to(elegible_users[i].socket_id).emit("remove_open_post", { post: data.the_post });
         }
     }
 
