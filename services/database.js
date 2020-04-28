@@ -915,14 +915,16 @@ class database {
   }
   begin_tutorial(post_id) {
     const postModel = require('../models/post');
-
+    
     const filter = { _id: post_id };
 
     return new Promise((resolve, reject) => {
       postModel.findOneAndUpdate(filter, { tutorial_started: true }, { new: true }).then(result => {
+       
         resolve(result);
       })
         .catch((exception) => {
+          console.log("could not find tutorial");
           resolve({ error: true, response: exception });
         });
     });

@@ -525,7 +525,7 @@ app.post('/begin_tutorial', async (req, res) => {
 
   //Begin tutorial
   let tutorial = await database_connection.begin_tutorial(req.body.tutorial_id);
-
+  
   //CHECK DKIT LDAP SERVERS!!!!
   let student_number = req.body.student_number;
 
@@ -534,7 +534,7 @@ app.post('/begin_tutorial', async (req, res) => {
   //Get tutors avatar
   let tutor_avatar = await database_connection.find_id_by_email(tutorial.post_tutor_email);
   let tutor_notification = await database_connection.create_notification("Tutorial started", "The tutorial '" + tutorial.post_title + "' has been started! Goodluck!", tutorial.post_tutor_email, ["Tutorial started"], { post_id: req.body.tutorial_id }, tutor_avatar.response.user_avatar);
-
+ 
   blockchain_controller.add_transaction_to_blockchain(req.body.tutorial_id, { title: "Tutorial started", content: "The tutorial '" + tutorial.post_title + "' has just been started by the tutor." });
 
   res.json({ updated_tutorial: tutorial, student_notification: student_notification, tutor_notification: tutor_notification });
