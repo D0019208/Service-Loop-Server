@@ -330,6 +330,8 @@ app.post('/update_avatar', async (req, res) => {
 
 //TEST THIS
 app.post('/edit_skills', async (req, res) => {
+  console.log(req.body.skills)
+  Live_Updates_Controller.update_skills(req.body.users_email, req.body.skills);
   let response = await database_connection.update_user(req.body.users_email, { user_modules: req.body.skills });
 
   res.json(response);

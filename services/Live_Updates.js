@@ -130,6 +130,16 @@ class Live_Updates {
         }
     }
 
+    async update_skills(email, skills) {
+        for (let i = 0; i < this.users_connected.length; i++) {
+            if (this.users_connected[i].email === email) {
+                this.users_connected[i].modules = skills;
+            }
+        }
+
+        console.log(this.users_connected)
+    }
+
     removeOpen(socket, data) {
         console.log("data2)")
         console.log(data)
