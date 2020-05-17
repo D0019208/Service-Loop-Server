@@ -17,7 +17,7 @@ global.sms_app_key = "3i1ivu6elylunazito7y";
 global.sms_api_key = "112a600ad7ce7b679505469dd5079444cbdc1344";
 global.sms_secret_key = "3i5u7ezara9o5yhy6u8a";
 
-global.localhost = false;
+global.localhost = true;
 
 var Live_Updates_Controller;
 
@@ -279,23 +279,40 @@ app.post('/offer_agreement', async (req, res) => {
     res.json({ error: true, response: "Please fill in all fields before proceeding." });
   }
 
-  const offer_agreement = require('./services/offer_agreement');
+  let is_action_available = await database_connection.action_available("offer_agreement", req.body.tutorial_id);
 
-  res.json(await offer_agreement.offer_agreement(database_connection, req.body.tutorial_id, req.body.tutorial_date.substring(0, 10), req.body.tutorial_time, req.body.tutorial_end_time, req.body.tutor_signature, req.body.tutor_avatar));
+  if (is_action_available.action_available) {
+    const offer_agreement = require('./services/offer_agreement');
+    res.json(await offer_agreement.offer_agreement(database_connection, req.body.tutorial_id, req.body.tutorial_date.substring(0, 10), req.body.tutorial_time, req.body.tutorial_end_time, req.body.tutor_signature, req.body.tutor_avatar));
+  } else {
+    res.json({ action_available: false });
+  }
   return;
 });
 
 //TEST THIS
 app.post('/accept_agreement', async (req, res) => {
-  const accept_agreement = require('./services/accept_agreement');
+  let is_action_available = await database_connection.action_available("accept_agreement", req.body.tutorial_id);
 
-  res.json(await accept_agreement.accept_agreement(database_connection, req.body.tutorial_id, req.body.student_signature));
+  if (is_action_available.action_available) {
+    const accept_agreement = require('./services/accept_agreement');
+    res.json(await accept_agreement.accept_agreement(database_connection, req.body.tutorial_id, req.body.student_signature));
+  } else {
+    res.json({ action_available: false });
+  }
+
   return;
 });
 
 //TEST THIS
 app.post('/reject_agreement', async (req, res) => {
-  res.json(await database_connection.reject_agreement(req.body.tutorial_id));
+  let is_action_available = await database_connection.action_available("reject_agreement", req.body.tutorial_id);
+
+  if (is_action_available.action_available) {
+    res.json(await database_connection.reject_agreement(req.body.tutorial_id));
+  } else {
+    res.json({ action_available: false });
+  }
   return;
 });
 
@@ -399,7 +416,7 @@ app.post('/forgot_password', async (req, res) => {
 
     }
     else {
-      response = "Password is not valid format";
+      response = "Password is not a valid format. It must be 8 characters, have a combination of digits, letters, capitals and special symbols e.g. 12345aA@";
       res.json(response);
       return;
     }
@@ -458,9 +475,7 @@ app.post('/change_password', async (req, res) => {
         res.json(response);
         return;
       }
-    }
-
-    else {
+    } else {
       response = "Old Password Incorrect";
       res.json(response);
       return;
@@ -478,13 +493,12 @@ app.post('/change_password', async (req, res) => {
 
 app.post('/change_phone', async (req, res) => {
   let check = await database_connection.change_user_phone(req.body.users_email, req.body.user_phone_number);
-  console.log(check.error);
+  console.log(check);
 
-  if (check.error == "true") {
+  if (check.error == true) {
     res.json(check.response);
     return;
-  }
-  else {
+  } else {
     res.json(check.response);
     return;
   }
@@ -497,93 +511,119 @@ app.post('/cancel_tutorial', async (req, res) => {
 
   let tutorial = req.body.tutorial;
 
-  //Remove tutorial
-  //let response = await database_connection.delete_tutorial(req.body.tutorial_id);
+  let is_action_available = await database_connection.action_available("cancel", tutorial._id);
 
-  let student_notification = await database_connection.create_notification("Tutorial canceled", "The tutorial '" + tutorial.post_title + "' has been cancelled.", tutorial.std_email, ["Tutorial cancelled"], { post_id: req.body.tutorial_id }, req.body.avatar);
-  let tutor_notification;
-  let tutor_exists = false;
+  if (is_action_available.action_available) {
+    //Remove tutorial
+    let response = await database_connection.delete_tutorial(req.body.tutorial_id);
 
-  if (typeof tutorial.post_tutor_email !== "undefined") {
-    tutor_exists = true;
+    let student_notification = await database_connection.create_notification("Tutorial canceled", "The tutorial '" + tutorial.post_title + "' has been cancelled.", tutorial.std_email, ["Tutorial cancelled"], { post_id: req.body.tutorial_id }, req.body.avatar);
+    let tutor_notification;
+    let tutor_exists = false;
 
-    let tutor_avatar = await database_connection.find_id_by_email(tutorial.post_tutor_email);
-    tutor_notification = await database_connection.create_notification("Tutorial canceled", "The tutorial '" + tutorial.post_title + "' has been cancelled.", tutorial.post_tutor_email, ["Tutorial cancelled"], { post_id: req.body.tutorial_id }, tutor_avatar.response.user_avatar);
+    if (typeof tutorial.post_tutor_email !== "undefined") {
+      tutor_exists = true;
+
+      let tutor_avatar = await database_connection.find_id_by_email(tutorial.post_tutor_email);
+      tutor_notification = await database_connection.create_notification("Tutorial canceled", "The tutorial '" + tutorial.post_title + "' has been cancelled.", tutorial.post_tutor_email, ["Tutorial cancelled"], { post_id: req.body.tutorial_id }, tutor_avatar.response.user_avatar);
+    }
+
+    //get_avatar(email, is_tutor);
+
+    //let new_tutorial = await database_connection.add_tutorial(req.body.tutorial.post_title, req.body.tutorial.post_desc, req.body.tutorial.post_modules, req.body.tutorial.std_email, req.body.tutorial.std_avatar);
+
+    blockchain_controller.add_transaction_to_blockchain(req.body.tutorial_id, { title: "Tutorial canceled", content: "The tutorial '" + tutorial.post_title + "' has been canceled." });
+
+    res.json({ action_available: true, student_notification: student_notification, tutor_notification: tutor_notification, tutor_exists: tutor_exists });
+  } else {
+    res.json({ action_available: false });
   }
-
-  //get_avatar(email, is_tutor);
-
-  //let new_tutorial = await database_connection.add_tutorial(req.body.tutorial.post_title, req.body.tutorial.post_desc, req.body.tutorial.post_modules, req.body.tutorial.std_email, req.body.tutorial.std_avatar);
-
-  blockchain_controller.add_transaction_to_blockchain(req.body.tutorial_id, { title: "Tutorial canceled", content: "The tutorial '" + tutorial.post_title + "' has been canceled." });
-
-  res.json({ student_notification: student_notification, tutor_notification: tutor_notification, tutor_exists: tutor_exists });
   return;
 });
 
 app.post('/begin_tutorial', async (req, res) => {
-  const Blockchain = require('./services/Blockchain');
-  const blockchain_controller = new Blockchain(global.blockchain_api_key);
+  let is_action_available = await database_connection.action_available("begin_tutorial", req.body.tutorial_id);
 
-  //Begin tutorial
-  let tutorial = await database_connection.begin_tutorial(req.body.tutorial_id);
-  
-  //CHECK DKIT LDAP SERVERS!!!!
-  let student_number = req.body.student_number;
+  if (is_action_available.action_available) {
+    const Blockchain = require('./services/Blockchain');
+    const blockchain_controller = new Blockchain(global.blockchain_api_key);
 
-  let student_notification = await database_connection.create_notification("Tutorial started", "The tutorial '" + tutorial.post_title + "' has been started! Goodluck!", tutorial.std_email, ["Tutorial started"], { post_id: req.body.tutorial_id }, req.body.avatar);
+    //Begin tutorial
+    let tutorial = await database_connection.begin_tutorial(req.body.tutorial_id);
 
-  //Get tutors avatar
-  let tutor_avatar = await database_connection.find_id_by_email(tutorial.post_tutor_email);
-  let tutor_notification = await database_connection.create_notification("Tutorial started", "The tutorial '" + tutorial.post_title + "' has been started! Goodluck!", tutorial.post_tutor_email, ["Tutorial started"], { post_id: req.body.tutorial_id }, tutor_avatar.response.user_avatar);
- 
-  blockchain_controller.add_transaction_to_blockchain(req.body.tutorial_id, { title: "Tutorial started", content: "The tutorial '" + tutorial.post_title + "' has just been started by the tutor." });
+    //CHECK DKIT LDAP SERVERS!!!!
+    let student_number = req.body.student_number;
 
-  res.json({ updated_tutorial: tutorial, student_notification: student_notification, tutor_notification: tutor_notification });
+    let student_notification = await database_connection.create_notification("Tutorial started", "The tutorial '" + tutorial.post_title + "' has been started! Goodluck!", tutorial.std_email, ["Tutorial started"], { post_id: req.body.tutorial_id }, req.body.avatar);
+
+    //Get tutors avatar
+    let tutor_avatar = await database_connection.find_id_by_email(tutorial.post_tutor_email);
+    let tutor_notification = await database_connection.create_notification("Tutorial started", "The tutorial '" + tutorial.post_title + "' has been started! Goodluck!", tutorial.post_tutor_email, ["Tutorial started"], { post_id: req.body.tutorial_id }, tutor_avatar.response.user_avatar);
+
+    blockchain_controller.add_transaction_to_blockchain(req.body.tutorial_id, { title: "Tutorial started", content: "The tutorial '" + tutorial.post_title + "' has just been started by the tutor." });
+
+    res.json({ action_available: true, updated_tutorial: tutorial, student_notification: student_notification, tutor_notification: tutor_notification });
+  } else {
+    res.json({ action_available: false });
+  }
+
   return;
 });
 
 app.post('/finish_tutorial', async (req, res) => {
-  const Blockchain = require('./services/Blockchain');
-  const blockchain_controller = new Blockchain(global.blockchain_api_key);
+  let is_action_available = await database_connection.action_available("end_tutorial", req.body.tutorial_id);
 
-  //Begin tutorial
-  let tutorial = await database_connection.finish_tutorial(req.body.tutorial_id);
+  if (is_action_available.action_available) {
+    const Blockchain = require('./services/Blockchain');
+    const blockchain_controller = new Blockchain(global.blockchain_api_key);
 
-  let student_notification = await database_connection.create_notification("Tutorial finished", "The tutorial '" + tutorial.post_title + "' has been completed! <br><br> Thank you for using Student Loop!", tutorial.std_email, ["Tutorial finished"], { post_id: req.body.tutorial_id }, req.body.avatar);
+    //Begin tutorial
+    let tutorial = await database_connection.finish_tutorial(req.body.tutorial_id);
 
-  //Get tutors avatar
-  let tutor_avatar = await database_connection.find_id_by_email(tutorial.post_tutor_email);
-  let tutor_notification = await database_connection.create_notification("Tutorial finished", "The tutorial '" + tutorial.post_title + "' has been completed! <br><br> Thank you for using Student Loop!", tutorial.post_tutor_email, ["Tutorial finished"], { post_id: req.body.tutorial_id }, tutor_avatar.response.user_avatar);
+    let student_notification = await database_connection.create_notification("Tutorial finished", "The tutorial '" + tutorial.post_title + "' has been completed! <br><br> Thank you for using Student Loop!", tutorial.std_email, ["Tutorial finished"], { post_id: req.body.tutorial_id }, req.body.avatar);
 
-  blockchain_controller.add_transaction_to_blockchain(req.body.tutorial_id, { title: "Tutorial finished", content: "The tutorial '" + tutorial.post_title + "' has just been finished by the tutor." });
+    //Get tutors avatar
+    let tutor_avatar = await database_connection.find_id_by_email(tutorial.post_tutor_email);
+    let tutor_notification = await database_connection.create_notification("Tutorial finished", "The tutorial '" + tutorial.post_title + "' has been completed! <br><br> Thank you for using Student Loop!", tutorial.post_tutor_email, ["Tutorial finished"], { post_id: req.body.tutorial_id }, tutor_avatar.response.user_avatar);
 
-  res.json({ updated_tutorial: tutorial, student_notification: student_notification, tutor_notification: tutor_notification });
+    blockchain_controller.add_transaction_to_blockchain(req.body.tutorial_id, { title: "Tutorial finished", content: "The tutorial '" + tutorial.post_title + "' has just been finished by the tutor." });
+
+    res.json({ action_available: true, updated_tutorial: tutorial, student_notification: student_notification, tutor_notification: tutor_notification });
+  } else {
+    res.json({ action_available: false });
+  }
   return;
 });
 
 app.post('/rate_tutor', async (req, res) => {
-  const Blockchain = require('./services/Blockchain');
-  const blockchain_controller = new Blockchain(global.blockchain_api_key);
+  let is_action_available = await database_connection.action_available("rate", req.body.tutorial_id);
 
-  //Rate tutor
-  let tutor = await database_connection.find_id_by_email(req.body.tutorial.post_tutor_email);
-  let previous_ratings = tutor.response.past_ratings;
-  let total_ratings = tutor.response.total_ratings;
-  let rating = tutor.response.tutor_rating;
+  if (is_action_available.action_available) {
+    const Blockchain = require('./services/Blockchain');
+    const blockchain_controller = new Blockchain(global.blockchain_api_key);
 
-  previous_ratings.push(req.body.rating);
-  total_ratings++;
+    //Rate tutor
+    let tutor = await database_connection.find_id_by_email(req.body.tutorial.post_tutor_email);
+    let previous_ratings = tutor.response.past_ratings;
+    let total_ratings = tutor.response.total_ratings;
+    let rating = tutor.response.tutor_rating;
 
-  rating = (previous_ratings.reduce((a, b) => parseFloat(a) + parseFloat(b), 0) / total_ratings);
-  rating = Math.round(rating);
+    previous_ratings.push(req.body.rating);
+    total_ratings++;
 
-  let rating_update_response = await database_connection.rate_tutor(req.body.tutorial.post_tutor_email, rating, previous_ratings, total_ratings);
-  let new_tutorial = await database_connection.update_post(req.body.tutorial_id, { tutor_rated: true, comment: req.body.comment });
+    rating = (previous_ratings.reduce((a, b) => parseFloat(a) + parseFloat(b), 0) / total_ratings);
+    rating = Math.round(rating);
 
-  blockchain_controller.add_transaction_to_blockchain(req.body.tutorial_id, { title: "Tutor has been rated", content: "The student has give you a rating of " + req.body.rating + "/5 for the tutorial '" + req.body.tutorial.post_title + "'." });
+    let rating_update_response = await database_connection.rate_tutor(req.body.tutorial.post_tutor_email, rating, previous_ratings, total_ratings);
+    let new_tutorial = await database_connection.update_post(req.body.tutorial_id, { tutor_rated: true, comment: req.body.comment });
 
-  res.json({ updated_tutorial: new_tutorial });
+    blockchain_controller.add_transaction_to_blockchain(req.body.tutorial_id, { title: "Tutor has been rated", content: "The student has give you a rating of " + req.body.rating + "/5 for the tutorial '" + req.body.tutorial.post_title + "'." });
+
+    res.json({ action_available: true, updated_tutorial: new_tutorial });
+  } else {
+    res.json({ action_available: false });
+  }
+
   return;
 });
 
@@ -604,7 +644,7 @@ if (global.localhost) {
     await database_connection.connect();
 
     //DELETE EVERYTHING
-    //await database_connection.reset();
+    await database_connection.reset();
 
     Live_Updates_Controller = new Live_Updates(server, app);
     Live_Updates_Controller.connect();

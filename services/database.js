@@ -530,11 +530,11 @@ class database {
                   notifications.push(tutor_notifications.response[i]);
                 }
 
-                notifications = notifications.sort(function(a, b) {
+                notifications = notifications.sort(function (a, b) {
                   a = new Date(a.notification_posted_on);
                   b = new Date(b.notification_posted_on);
-                  return a>b ? -1 : a<b ? 1 : 0;
-              });
+                  return a > b ? -1 : a < b ? 1 : 0;
+                });
               }
 
               resolve({ error: false, response: notifications });
@@ -689,6 +689,128 @@ class database {
       }
     } else {
       return { error: true, response: "The post you wish to tutor is no longer available!" };
+    }
+  }
+
+  action_available(action, post_id) {
+    const postModel = require('../models/post');
+
+    if (action === "cancel") {
+      //Check if post still exists to cancel i.e. not "Done" or canceled
+      return new Promise((resolve, reject) => {
+        postModel.findOne({ _id: post_id, post_status: { $ne: "Done" } }).then(async result => {
+          if (result === null) {
+            //Tutorial canceled
+            resolve({ action_available: false });
+          } else {
+            resolve({ action_available: true });
+          }
+        });
+      });
+    } else if (action === "offer_agreement") {
+      //Check that the post is in "Pending" or "In negotiation" state and hasn't already been offered an agreement
+      return new Promise((resolve, reject) => {
+        //Check if tutorial still exists i.e. not "Done" or canceled
+        postModel.findOne({ _id: post_id, post_status: { $ne: "Done" } }).then(async result => {
+          if (result === null) {
+            //Tutorial canceled
+            resolve({ action_available: false });
+          } else {
+            postModel.findOne({ _id: post_id, post_agreement_offered: false, post_status: "In negotiation" }).then(async result => {
+              if (result === null) {
+                //Tutorial agreement already offered
+                resolve({ action_available: false });
+              } else {
+                resolve({ action_available: true });
+              }
+            });
+          }
+        });
+      });
+    } else if (action === "reject_agreement" || action === "accept_agreement") {
+      return new Promise((resolve, reject) => {
+        //Check if tutorial still exists i.e. not "Done" or canceled
+        postModel.findOne({ _id: post_id, post_status: { $ne: "Done" } }).then(async result => {
+          if (result === null) {
+            //Tutorial canceled
+            resolve({ action_available: false });
+          } else {
+            postModel.findOne({ _id: post_id, post_agreement_signed: false, post_agreement_offered: true, post_status: "In negotiation" }).then(async result => {
+              if (result === null) {
+                //Tutorial agreement already accepted or rejected
+                resolve({ action_available: false });
+              } else {
+                resolve({ action_available: true });
+              }
+            });
+          }
+        });
+      });
+    } else if (action === "begin_tutorial") {
+      console.log("begin tut")
+      return new Promise((resolve, reject) => {
+        //Check if tutorial still exists i.e. not "Done" or canceled
+        postModel.findOne({ _id: post_id, post_status: { $ne: "Done" } }).then(async result => {
+          if (result === null) {
+            //Tutorial canceled
+            resolve({ action_available: false });
+          } else {
+            postModel.findOne({ _id: post_id, post_agreement_signed: true, post_status: "Ongoing", tutorial_started: false, tutorial_finished: false, tutor_rated: false }).then(async result => {
+              if (result === null) {
+                //Tutorial already started
+                resolve({ action_available: false });
+              } else {
+                resolve({ action_available: true });
+              }
+            });
+          }
+        });
+      });
+    } else if (action === "end_tutorial") {
+      console.log("finish tut")
+      return new Promise((resolve, reject) => {
+        //Check if tutorial still exists i.e. not "Done" or canceled
+        postModel.findOne({ _id: post_id, post_status: { $ne: "Done" } }).then(async result => {
+          if (result === null) {
+            //Tutorial canceled
+            resolve({ action_available: false });
+          } else {
+            postModel.findOne({ _id: post_id, post_agreement_signed: true, post_status: "Ongoing", tutorial_started: true, tutorial_finished: false, tutor_rated: false }).then(async result => {
+              if (result === null) {
+                //Tutorial already finished
+                resolve({ action_available: false });
+              } else {
+                resolve({ action_available: true });
+              }
+            });
+          }
+        });
+      });
+    } else if (action === "rate") {
+      console.log("rate tut")
+      return new Promise((resolve, reject) => {
+        //Check if tutorial still exists i.e. not "Done" or canceled
+        postModel.findOne({ _id: post_id, tutor_rated: false, post_status: "Done" }).then(async result => {
+          if (result === null) {
+            //Tutorial already rated
+            resolve({ action_available: false });
+          } else {
+            resolve({ action_available: true });
+          }
+        });
+      });
+    } else if (action === "view_pdf" || action === "verify_pdf") {
+      return new Promise((resolve, reject) => {
+        //Check if tutorial still exists i.e. not "Done" or canceled
+        postModel.findOne({ _id: post_id, post_status: { $ne: "Done" } }).then(async result => {
+          if (result === null) {
+            //Tutorial canceled
+            resolve({ action_available: false });
+          } else {
+            resolve({ action_available: true });
+          }
+        });
+      });
     }
   }
 
@@ -872,7 +994,7 @@ class database {
         const blockchain_controller = new Blockchain(global.blockchain_api_key);
         blockchain_controller.add_transaction_to_blockchain(post_id, { title: "Agreement rejected", content: "The student, '" + result.std_name + "' has rejected the agreement for the tutorial, '" + result.post_title + "'. The tutor must now create a new agreement." });
 
-        resolve({ error: false, response: "Tutorial rejected successfully.", updated_tutorial: result, student_notification: student_notification, tutor_notification: tutor_notification });
+        resolve({action_available: true, error: false, response: "Tutorial rejected successfully.", updated_tutorial: result, student_notification: student_notification, tutor_notification: tutor_notification });
       })
     });
   }
@@ -915,12 +1037,12 @@ class database {
   }
   begin_tutorial(post_id) {
     const postModel = require('../models/post');
-    
+
     const filter = { _id: post_id };
 
     return new Promise((resolve, reject) => {
       postModel.findOneAndUpdate(filter, { tutorial_started: true }, { new: true }).then(result => {
-       
+
         resolve(result);
       })
         .catch((exception) => {
@@ -1000,8 +1122,7 @@ class database {
     }
     else {
       return new Promise((resolve, reject) => {
-        let response = "Phone number is not valid";
-        resolve(response);
+        resolve({ error: true, response: "Phone number is not valid" });
       });
     }
 
@@ -1032,9 +1153,9 @@ class database {
               my_open_tutorials++;
             }
 
-            if (results[i].post_status == "In negotiation" && results[i].post_tutor_email == email) {
+            if ((results[i].post_status == "In negotiation" || results[i].post_status == "Pending") && results[i].post_tutor_email == email) {
               tutored_tutorials_pending++;
-            } else if (results[i].post_status == "Pending" && results[i].std_email == email) {
+            } else if ((results[i].post_status == "In negotiation" || results[i].post_status == "Pending") && results[i].std_email == email) {
               my_pending_tutorials++;
             }
 
@@ -1114,7 +1235,7 @@ class database {
         console.log(result)
         let room_booked = false;
         const moment = require('moment-timezone');
-        
+
         let tutorial_start_date = moment(new Date(start_date + ' ' + start_time)).tz('Europe/Dublin').format('YYYY-MM-DD HH:mm');
         let tutorial_end_date = moment(new Date(start_date + ' ' + end_time)).tz('Europe/Dublin').format('YYYY-MM-DD HH:mm');
 
