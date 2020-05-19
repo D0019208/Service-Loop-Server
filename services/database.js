@@ -266,16 +266,16 @@ class database {
    * @returns {Promise} This Promise will contain an object that contains 2 keys: error and response, the "error" key will be a boolean 
    * that specifies wether the registration was successful or not and the "response" key will be a String that contains the response from the function
    */
-  elevate_user_to_tutor(email, modules) {
+  elevate_user_to_tutor(email, modules, token) {
     const filter = { user_email: email };
     const update = { user_tutor: true, user_modules: modules };
 
     return new Promise((resolve, reject) => {
       userModel.findOneAndUpdate(filter, update).then(result => {
-        resolve({ error: false, response: "User elevated successfully!" });
+        resolve({ error: false, response: "User elevated successfully!", session_valid: true, new_token: token });
       })
         .catch((exception) => {
-          resolve({ error: true, response: exception });
+          resolve({ error: true, response: exception, session_valid: true, new_token: token });
         });
     });
   }
@@ -293,7 +293,7 @@ class database {
    * that specifies wether the registration was successful or not and the "response" key will be an array that contains the post added and the response for
    * the normal notification added and the tutor notification added 
    */
-  async add_tutorial(request_title, request_description, request_modules, users_email, user_avatar) {
+  async add_tutorial(request_title, request_description, request_modules, users_email, user_avatar, token) {
 
     const contenxt = this;
     const postModel = require('../models/post');
@@ -319,7 +319,7 @@ class database {
         newPost.save(async function (err, post) {
           //If an error has occured, we do not create a notification but return an Object with the "error" key set to true and the error message in the "response" key
           if (err) {
-            resolve({ error: true, response: err });
+            resolve({ session_valid: true, new_token: token, error: true, response: err });
           } else {
             //If there is no error, we create a notification for the user stating that their request has been sent
             let notification_response = await contenxt.create_notification("Tutorial request sent", "You have successfully requested a tutorial for the following modules: " + request_modules.join(', ') + ".<br><br> A tutor will be in contact with you as soon as possible.", post.std_email, ["Tutorial request sent"], { post_id: post._id, modules: request_modules }, user_avatar);
@@ -330,17 +330,17 @@ class database {
 
               //If the notification is sent, we return an object with the "error" key set to false along with a response
               if (!tutor_notification_response.error) {
-                resolve({ error: false, debug_message: "Post created successfully.", response: [post, notification_response.response, tutor_notification_response.response] });
+                resolve({ session_valid: true, new_token: token, error: false, debug_message: "Post created successfully.", response: [post, notification_response.response, tutor_notification_response.response] });
               } else {
-                resolve({ error: true, response: notification_response.response });
+                resolve({ session_valid: true, new_token: token, error: true, response: notification_response.response });
               }
             } else {
-              resolve({ error: true, response: notification_response.response });
+              resolve({ session_valid: true, new_token: token, error: true, response: notification_response.response });
             }
           }
         });
       } catch (ex) {
-        resolve(ex)
+        resolve({ session_valid: true, new_token: token, exception: ex })
       }
 
     });
@@ -501,7 +501,7 @@ class database {
    * @returns {Promise} This Promise will contain an object that contains 2 keys: error and response, the "error" key will be a boolean 
    * that specifies wether the registration was successful or not and the "response" key will contain the notifications or a String if there are no notifications to display
    */
-  async get_all_users_notifications(email, user_tutor) {
+  async get_all_users_notifications(email, user_tutor, token) {
     const notificationModelSchema = require('../models/notifications');
 
     //If the user is a tutor, on top of getting the normal notifications, we get the tutor notifications
@@ -522,7 +522,7 @@ class database {
           notificationModelSchema.find(filter).sort({ notification_posted_on: -1 }).then((notifications) => {
             //If there are no tutor or normal notifications to display, we send back a string
             if (!notifications.length && tutor_notifications.response === "There are no notifications to display!") {
-              resolve({ error: true, response: "There are no notifications to display!" });
+              resolve({ error: true, response: "There are no notifications to display!", session_valid: true, new_token: token });
             } else {
               //If there are either normal or tutor notifications, we add the tutor notifications to the normal notifications and send them to the user
               if (tutor_notifications.response !== "There are no notifications to display!") {
@@ -537,12 +537,12 @@ class database {
                 });
               }
 
-              resolve({ error: false, response: notifications });
+              resolve({ error: false, response: notifications, session_valid: true, new_token: token });
             }
 
           })
             .catch((exception) => {
-              resolve({ error: true, response: exception });
+              resolve({ error: true, response: exception, session_valid: true, new_token: token });
             });
         });
       } else {
@@ -556,14 +556,13 @@ class database {
         notificationModelSchema.find(filter).sort({ notification_posted_on: -1 }).then((notifications) => {
 
           if (notifications.length !== 0) {
-            resolve({ error: false, response: notifications });
+            resolve({ error: false, response: notifications, session_valid: true, new_token: token });
           } else {
-            resolve({ error: false, response: 'There are no notifications to display!' });
+            resolve({ error: false, response: 'There are no notifications to display!', session_valid: true, new_token: token });
           }
         })
           .catch((exception) => {
-            console.log("error")
-            resolve({ error: true, response: exception });
+            resolve({ error: true, response: exception, session_valid: true, new_token: token });
           });
       });
     }
@@ -577,63 +576,59 @@ class database {
    * @returns {Promise} This Promise will contain an object that contains 2 keys: error and response, the "error" key will be a boolean 
    * that specifies wether the registration was successful or not and the "response" key will contain all the tutorials a tutor is elegible to teach
    */
-  get_all_elegible_posts(email, modules) {
+  get_all_elegible_posts(email, modules, token) {
     const postModel = require('../models/post');
     const filter = { std_email: { "$ne": email }, post_modules: { "$in": modules }, post_status: { "$in": "Open" } };
 
     return new Promise((resolve, reject) => {
       postModel.find(filter).sort({ post_posted_on: -1 }).then((posts) => {
         if (!posts || posts.length == 0) {
-          resolve({ error: false, response: "There are no posts to display!" });
+          resolve({ session_valid: true, new_token: token, error: false, response: "There are no posts to display!" });
         } else {
-          resolve({ error: false, response: posts });
+          resolve({ session_valid: true, new_token: token, error: false, response: posts });
         }
-
-      })
-        .catch((exception) => {
-          console.log("error")
-          resolve({ error: true, response: exception });
-        });
+      }).catch((exception) => {
+        resolve({ session_valid: true, new_token: token, error: true, response: exception });
+      });
     });
   }
 
   //TEST THIS
-  get_all_users_tutorials(email) {
+  get_all_users_tutorials(email, token) {
     const postModel = require('../models/post');
     const filter = { std_email: email };
 
     return new Promise((resolve, reject) => {
       postModel.find(filter).sort({ post_posted_on: -1 }).then((posts) => {
         if (!posts || posts.length == 0) {
-          resolve({ error: false, response: "There are no posts to display!" });
+          resolve({ error: false, response: "There are no posts to display!", session_valid: true, new_token: token });
         } else {
-          resolve({ error: false, response: posts });
+          resolve({ error: false, response: posts, session_valid: true, new_token: token });
         }
-
       })
         .catch((exception) => {
           console.log("error")
-          resolve({ error: true, response: exception });
+          resolve({ error: true, response: exception, session_valid: true, new_token: token });
         });
     });
   }
 
   //TEST THIS
-  get_all_tutor_tutorials(email) {
+  get_all_tutor_tutorials(email, token) {
     const postModel = require('../models/post');
     const filter = { post_tutor_email: email };
 
     return new Promise((resolve, reject) => {
       postModel.find(filter).sort({ post_posted_on: -1 }).then((posts) => {
         if (!posts || posts.length == 0) {
-          resolve({ error: false, response: "There are no posts to display!" });
+          resolve({ session_valid: true, new_token: token, error: false, response: "There are no posts to display!" });
         } else {
-          resolve({ error: false, response: posts });
+          resolve({ session_valid: true, new_token: token, error: false, response: posts });
         }
       })
         .catch((exception) => {
           console.log("error")
-          resolve({ error: true, response: exception });
+          resolve({ session_valid: true, new_token: token, error: true, response: exception });
         });
     });
   }
@@ -646,7 +641,7 @@ class database {
    * @returns {Promise} This Promise will contain an object that contains 2 keys: error and response, the "error" key will be a boolean 
    * that specifies wether the registration was successful or not and the "response" key will contain a message
    */
-  set_notification_to_read(notification_id) {
+  set_notification_to_read(notification_id, token) {
     const notificationModelSchema = require('../models/notifications');
 
     const filter = { _id: notification_id };
@@ -654,16 +649,21 @@ class database {
 
     return new Promise((resolve, reject) => {
       notificationModelSchema.findOneAndUpdate(filter, update).then(result => {
-        resolve("Notification updated successfully!");
+        resolve({ session_valid: true, new_token: token, response: "Notification updated successfully!" });
       })
         .catch((exception) => {
-          resolve({ error: true, response: exception });
+          resolve({ session_valid: true, new_token: token, error: true, response: exception });
         });
     });
   }
   //TO BE CONTINUED
-  async accept_post(tutor_email, tutor_name, post_id, user_avatar) {
+  async accept_post(tutor_email, tutor_name, post_id, user_avatar, token) {
     const Blockchain = require('./Blockchain');
+
+    if (typeof global.blockchain_api_key === 'undefined') {
+      global.blockchain_api_key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJBcGlLZXkiOiJSMUg2NVdGLVhCWjRIVkctSEJHV045Ri1EREdHQTJLIiwiQXBpU2VjcmV0IjoiakQ0UG05cHNhU3VZQUMxIiwiUGFzc3BocmFzZSI6ImI5YmIxMzg5MjJjMmIwNTUyMDczYTNiNjUzMzU2NGI1IiwiaWF0IjoxNTg5ODA1ODIyfQ.L7iyzTjyFth6aJcE77r77O-923SpAwnE2q6UvQx_8Bc";
+    }
+
     const blockchain_controller = new Blockchain(global.blockchain_api_key);
     const postModel = require('../models/post');
     const filter = { _id: post_id };
@@ -681,14 +681,14 @@ class database {
             let notification_response_student = await this.create_notification("Tutorial accepted", tutor_name + " has accepted your request '" + result.post_title + "'.<br><br>The tutor will contact you via email.", result.std_email, ["Tutorial request accepted"], { post_id: post_id }, user_avatar);
             blockchain_controller.add_transaction_to_blockchain(post_id, { title: "Tutorial accepted", content: "'" + tutor_name + "' has accepted to tutor '" + result.std_name + "' for the tutorial '" + result.post_title + "'" });
 
-            resolve({ error: false, response: { tutor_notification: notification_response_tutor.response, student_notification: notification_response_student, post: result } });
+            resolve({ session_valid: true, new_token: token, error: false, response: { tutor_notification: notification_response_tutor.response, student_notification: notification_response_student, post: result } });
           });
         });
       } else {
-        return { error: true, response: "Error creating a notification." };
+        return { session_valid: true, new_token: token, error: true, response: "Error creating a notification." };
       }
     } else {
-      return { error: true, response: "The post you wish to tutor is no longer available!" };
+      return { session_valid: true, new_token: token, error: true, response: "The post you wish to tutor is no longer available!" };
     }
   }
 
@@ -799,18 +799,6 @@ class database {
           }
         });
       });
-    } else if (action === "view_pdf" || action === "verify_pdf") {
-      return new Promise((resolve, reject) => {
-        //Check if tutorial still exists i.e. not "Done" or canceled
-        postModel.findOne({ _id: post_id, post_status: { $ne: "Done" } }).then(async result => {
-          if (result === null) {
-            //Tutorial canceled
-            resolve({ action_available: false });
-          } else {
-            resolve({ action_available: true });
-          }
-        });
-      });
     }
   }
 
@@ -852,22 +840,26 @@ class database {
 
 
   //TEST THIS
-  get_notification_posts(notification_posts_id) {
+  get_notification_posts(notification_posts_id, token) {
     const postModel = require('../models/post');
 
     return new Promise((resolve, reject) => {
       postModel.find({ _id: { "$in": notification_posts_id } }).then((posts) => {
-        resolve({ error: false, response: posts });
+        resolve({ session_valid: true, new_token: token, error: false, response: posts });
       });
     });
   }
 
   //TEST THIS
   get_digital_certificate_details(email) {
+    console.log("e = " + email)
     const userModel = require('../models/users');
 
     return new Promise((resolve, reject) => {
       userModel.findOne({ user_email: email }).then((user) => {
+        console.log("test stuff");
+        console.log(email)
+        console.log(user);
         resolve({ certificate_path: user.user_digital_certificate_path, certificate_password: user.user_digital_certificate_password });
       });
     });
@@ -942,7 +934,7 @@ class database {
   //   });
   // }
 
-  update_post_agreement_status(post_id, update_object, room_taken = false) {
+  update_post_agreement_status(post_id, update_object, token, room_taken = false) {
     const postModel = require('../models/post');
 
     const filter = { _id: post_id };
@@ -950,7 +942,7 @@ class database {
 
     return new Promise(async (resolve, reject) => {
       postModel.findOneAndUpdate(filter, update, { new: true }).then(result => {
-        resolve({ error: false, response: result });
+        resolve({ session_valid: true, new_token: token, error: false, response: result });
       });
     });
   }
@@ -968,7 +960,7 @@ class database {
     });
   }
 
-  reject_agreement(post_id) {
+  reject_agreement(post_id, token) {
     const postModel = require('../models/post');
     const fs = require('fs');
     const path = require('path');
@@ -994,7 +986,7 @@ class database {
         const blockchain_controller = new Blockchain(global.blockchain_api_key);
         blockchain_controller.add_transaction_to_blockchain(post_id, { title: "Agreement rejected", content: "The student, '" + result.std_name + "' has rejected the agreement for the tutorial, '" + result.post_title + "'. The tutor must now create a new agreement." });
 
-        resolve({action_available: true, error: false, response: "Tutorial rejected successfully.", updated_tutorial: result, student_notification: student_notification, tutor_notification: tutor_notification });
+        resolve({ session_valid: true, new_token: token, action_available: true, error: false, response: "Tutorial rejected successfully.", updated_tutorial: result, student_notification: student_notification, tutor_notification: tutor_notification });
       })
     });
   }
@@ -1190,6 +1182,16 @@ class database {
     return new Promise((resolve, reject) => {
       postModel.deleteOne({ _id: post_id }).then(async (result) => {
         resolve("Deleted");
+      });
+    });
+  }
+
+  async delete_user(email) {
+    const userModel = require('../models/users');
+
+    return new Promise((resolve, reject) => {
+      userModel.deleteOne({ user_email: email }).then(async (result) => {
+        resolve("User Deleted");
       });
     });
   }

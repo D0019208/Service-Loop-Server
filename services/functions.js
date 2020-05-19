@@ -89,6 +89,10 @@ let send_email_with_agreement = function send_email_with_agreement(email_object)
  * @returns {Promise} - TBA
  */
 let create_agreement_pdf = function create_agreement_pdf(tutorial_information, signatures, post, student_signed = false) {
+    console.log("ppp")
+    console.log(tutorial_information);
+    console.log(signatures)
+    console.log(post)
     const fs = require('fs');
     const path = require('path');
     let base_path;

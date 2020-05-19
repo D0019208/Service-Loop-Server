@@ -123,14 +123,16 @@ let create_new_user = async function create_new_user(users_full_name, users_pass
 
 
     //Setup the user data validation
-                                                                                                                                                                                                                                                                                                                                                                                                                   
+
     const validator = require('validator');
     const filter_registration_input = require('./filter_registration_input');
 
-    const fs = require('fs');
-    fs.copyFile('/home/d00192082/ServiceLoopServer/resources/images/base_user.jpg', '/home/d00192082/ServiceLoopServer/resources/images/' + users_email + '.jpg', (err) => {
-        if (err) throw err;
-    });
+    if (typeof global.localhost !== 'undefined') {
+        const fs = require('fs');
+        fs.copyFile('/home/d00192082/ServiceLoopServer/resources/images/base_user.jpg', '/home/d00192082/ServiceLoopServer/resources/images/' + users_email + '.jpg', (err) => {
+            if (err) throw err;
+        });
+    }
 
     //Valiate user data
     let filtering_response = await filter_registration_input.validate_registration_input(users_full_name, users_password, users_password_confirm, users_email, users_phone_number, database_connection);
@@ -172,14 +174,15 @@ let create_new_user = async function create_new_user(users_full_name, users_pass
                     //Update the user with the new details 
                     let update_response = await database_connection.update_new_users_details(users_email, password_hash, digital_certificate_path, digital_certificate_password);
                     const Blockchain = require('../Blockchain');
-                    const blockchain_connection = new Blockchain(global.blockchain_api_key);
+                    let blockchain_connection;
+                    let blockchain_user_added = {error: false, response: {ApiToken: "0000", Id: "fkdjd", IdentityName: "Unit Test"} };
 
-                    let blockchain_user_added = await blockchain_connection.add_new_identity_to_blockchain(users_full_name + " User", users_full_name, "Student");
-                    console.log(blockchain_user_added);
+                    if (typeof global.localhost !== 'undefined') {
+                        blockchain_connection = new Blockchain(global.blockchain_api_key);
+                        blockchain_user_added = await blockchain_connection.add_new_identity_to_blockchain(users_full_name + " User", users_full_name, "Student");
+                    }
 
                     if (!blockchain_user_added.error) {
-                        console.log("User updayted")
-
                         await database_connection.update_user(users_email, { user_avatar: "https://d00192082.alwaysdata.net/ServiceLoopServer/resources/images/" + users_email + ".jpg", user_blockchain_api_token: blockchain_user_added.response.ApiToken, user_blockchain_id: blockchain_user_added.response.Id, user_blockchain_identity_name: blockchain_user_added.response.IdentityName });
                     }
 

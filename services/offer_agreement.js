@@ -1,4 +1,4 @@
-let offer_agreement = async function offer_agreement(database_connection, post_id, tutorial_date, tutorial_time, tutorial_end_time, tutor_signature, tutor_avatar) {
+let offer_agreement = async function offer_agreement(database_connection, post_id, tutorial_date, tutorial_time, tutorial_end_time, tutor_signature, tutor_avatar, token) {
     //Declare all libraries we need
     const Digital_Signature = require('./Digital_Signature');
     const Blockchain = require('./Blockchain');
@@ -11,7 +11,7 @@ let offer_agreement = async function offer_agreement(database_connection, post_i
 
     if (!room_booked) {
         //Update
-        let update_post_agreement_status_response = await database_connection.update_post_agreement_status(post_id, { post_agreement_offered: true, tutorial_date: tutorial_date, tutorial_time: tutorial_time, tutorial_end_time: tutorial_end_time, tutorial_room: 'P1204' });
+        let update_post_agreement_status_response = await database_connection.update_post_agreement_status(post_id, { post_agreement_offered: true, tutorial_date: tutorial_date, tutorial_time: tutorial_time, tutorial_end_time: tutorial_end_time, tutorial_room: 'P1204' }, token);
 
         if (update_post_agreement_status_response.error) {
             return update_post_agreement_status_response;
@@ -45,9 +45,9 @@ console.log(tutor_signature)
         let notification_response_tutor = await database_connection.create_notification("Agreement created", "You have created an agreement for the tutorial '" + update_post_agremeent_url_response.post_title + "'.<br><br>" + update_post_agremeent_url_response.std_name + " will either accept or reject the agreement. Click the button below to see the agreement.", update_post_agreement_status_response.post_tutor_email, ["Tutorial agreement offered"], { post_id: post_id, post_modules: update_post_agreement_status_response.post_modules }, tutor_avatar);
         let notification_response_student = await database_connection.create_notification("New agreement for the '" + update_post_agremeent_url_response.post_title + "' tutorial", update_post_agremeent_url_response.post_tutor_name + " has created an agreement.<br><br>Please accept or reject the agreement by opening tutorial below.", update_post_agreement_status_response.std_email, ["Tutorial agreement offered"], { post_id: post_id, post_modules: update_post_agreement_status_response.post_modules }, tutor_avatar);
 
-        return {action_available: true, error: false, response: "Agreement sent successfully", updated_tutorial: update_post_agremeent_url_response, tutor_notification: notification_response_tutor, student_notification: notification_response_student };
+        return {session_valid: true, action_available: true, new_token: token, error: false, response: "Agreement sent successfully", updated_tutorial: update_post_agremeent_url_response, tutor_notification: notification_response_tutor, student_notification: notification_response_student };
     } else {
-        return {action_available: true, error: true, response: "A tutorial is already taking place between these times. Please enter a different time and try again."}
+        return {session_valid: true, action_available: true, new_token: token, error: true, response: "A tutorial is already taking place between these times. Please enter a different time and try again."}
     }
 }
 

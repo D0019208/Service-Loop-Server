@@ -12,12 +12,13 @@ const database_connection = new database("Tutum_Nichita", "EajHKuViBCaL62Sj", "s
 
 var server;
 
-global.blockchain_api_key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJBcGlLZXkiOiJBMjBNM1haLTRDSzRNTjUtSkNRMDJNQi00WkFFSFAzIiwiQXBpU2VjcmV0IjoianUyUjRTbHNpMzVPakdjIiwiUGFzc3BocmFzZSI6IjIyNDBjNmEzMjJjMjRlNzgyMmM1YmM3ZTM1Y2RkNWI0IiwiaWF0IjoxNTgyNjM1Mjc2fQ.Hi92qvQhQW4R2Sh2OuUMTNyx4dY69wnyJq6Z49maOsE";
+global.blockchain_api_key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJBcGlLZXkiOiJSMUg2NVdGLVhCWjRIVkctSEJHV045Ri1EREdHQTJLIiwiQXBpU2VjcmV0IjoiakQ0UG05cHNhU3VZQUMxIiwiUGFzc3BocmFzZSI6ImI5YmIxMzg5MjJjMmIwNTUyMDczYTNiNjUzMzU2NGI1IiwiaWF0IjoxNTg5ODA1ODIyfQ.L7iyzTjyFth6aJcE77r77O-923SpAwnE2q6UvQx_8Bc";
+global.JWT_SECRET = 'rk-yDPaHYm2VrePcMaL4xp3cgMTMBEuu7otKr31yvneSiH3LuYRSE8SNk0PV7xFWVZd1cE-34MqBUlIQTWq8TaZNtvMdVDiBaTNyI46rptomt-zDFJih5MjLZdbDsr4UH8CRaigFlAQKqS0ZtS84dTZKN-SlcZhuBzV-MWvnbxz3ehTomMuhCSV91IT3E0DlLf4A2P8mzw96tKOvsNq1K6yEYdKwgdn88CgxPBCmTkaaMxtfnyar0v_QbW5m7NJ37X4mvBLQt3G3bFcQmB0NZUq3OBXGw8rw2LzSB4W5ylOK1e9-T8SQtUMsjGyy5hlQdcK6NW7a_OoQpBlehOUIjw';
 global.sms_app_key = "3i1ivu6elylunazito7y";
 global.sms_api_key = "112a600ad7ce7b679505469dd5079444cbdc1344";
 global.sms_secret_key = "3i5u7ezara9o5yhy6u8a";
 
-global.localhost = true;
+global.localhost = false;
 
 var Live_Updates_Controller;
 
@@ -150,12 +151,10 @@ app.post('/verify_token', async (req, res) => {
 
   try {
     //process.env.JWT_SECRET
-    let JWT_SECRET = 'rk-yDPaHYm2VrePcMaL4xp3cgMTMBEuu7otKr31yvneSiH3LuYRSE8SNk0PV7xFWVZd1cE-34MqBUlIQTWq8TaZNtvMdVDiBaTNyI46rptomt-zDFJih5MjLZdbDsr4UH8CRaigFlAQKqS0ZtS84dTZKN-SlcZhuBzV-MWvnbxz3ehTomMuhCSV91IT3E0DlLf4A2P8mzw96tKOvsNq1K6yEYdKwgdn88CgxPBCmTkaaMxtfnyar0v_QbW5m7NJ37X4mvBLQt3G3bFcQmB0NZUq3OBXGw8rw2LzSB4W5ylOK1e9-T8SQtUMsjGyy5hlQdcK6NW7a_OoQpBlehOUIjw';
-
     let user_response = await database_connection.find_user_by_email(email);
     let tutorials_count = await database_connection.find_tutored_tutorials(email);
 
-    let decoded = jwt.verify(token, JWT_SECRET);
+    let decoded = jwt.verify(token, global.JWT_SECRET);
 
     res.json({ session_response: "Session valid", user: user_response, tutorials_count: tutorials_count });
     return;
@@ -195,110 +194,274 @@ app.post('/register', async (req, res) => {
 //Need the forward slash...
 //"java -jar /home/d00192082/ServiceLoopServer/resources/java/JSignPdf.jar /home/d00192082/ServiceLoopServer/resources/pdfs/agreement_5e428eff1700d139c09167d2.pdf -v --visible-signature -d /home/d00192082/ServiceLoopServer/resources/pdfs -a --bg-path /home/d00192082/ServiceLoopServer/resources/images/adobe_watersign.png -page 1000 -kst PKCS12 -ksf /home/d00192082/ServiceLoopServer/ssl/client_5e41bc1b78c9ad2fa0dadac7.p12 -ksp pycnaMLBLp 2>&1"
 app.post('/appply_to_be_tutor', async (req, res) => {
-  try {
-    const validator = require('validator');
+  const verify_jwt_controller = require('./services/verify_jwt');
 
-    if (req.body.users_email === "" || req.body.users_email && req.body.users_skills.length !== 0 && req.body.users_skills) {
-      let tutor_email = req.body.users_email;
-      let tutor_skills = req.body.users_skills;
+  let is_session_valid;
 
-      res.json(await database_connection.elevate_user_to_tutor(tutor_email, tutor_skills));
-      return;
-    } else {
-      res.json({ error: true, response: "Please fill out all fields before applying." });
+  if (!localhost) {
+    is_session_valid = await verify_jwt_controller.verify_jwt(req.body.token, req.body.users_email);
+  } else {
+    is_session_valid = { session_valid: true, new_token: "" };
+  }
+
+  if (is_session_valid.session_valid) {
+    try {
+
+      const validator = require('validator');
+
+      if (req.body.users_email === "" || req.body.users_email && req.body.users_skills.length !== 0 && req.body.users_skills) {
+        let tutor_email = req.body.users_email;
+        let tutor_skills = req.body.users_skills;
+
+        res.json(await database_connection.elevate_user_to_tutor(tutor_email, tutor_skills, is_session_valid.new_token));
+        return;
+      } else {
+        res.json({ session_valid: true, new_token: is_session_valid.new_token, error: true, response: "Please fill out all fields before applying." });
+        return;
+      }
+    } catch (ex) {
+      res.json({ session_valid: true, new_token: is_session_valid.new_token, exception: ex });
       return;
     }
-  } catch (ex) {
-    res.json(ex);
-    return;
+  } else {
+    res.json(is_session_valid);
   }
 
 });
 
 app.post('/request_tutorial', async (req, res) => {
-  const validator = require('validator');
+  const verify_jwt_controller = require('./services/verify_jwt');
 
-  if (req.body.request_title.length == 0 || req.body.request_description.length == 0 || typeof req.body.request_modules[0] == "undefined" || req.body.request_modules == null || req.body.request_modules.length == null || req.body.users_email.length == 0) {
-    res.json({ error: true, response: "Please fill in all fields before proceeding." });
-    return;
+  let is_session_valid;
+
+  if (!localhost) {
+    is_session_valid = await verify_jwt_controller.verify_jwt(req.body.token, req.body.users_email);
+  } else {
+    is_session_valid = { session_valid: true, new_token: "" };
   }
 
-  res.json(await database_connection.add_tutorial(req.body.request_title, req.body.request_description, req.body.request_modules, req.body.users_email, req.body.user_avatar));
+  if (is_session_valid.session_valid) {
+    const validator = require('validator');
+
+    if (req.body.request_title.length == 0 || req.body.request_description.length == 0 || typeof req.body.request_modules[0] == "undefined" || req.body.request_modules == null || req.body.request_modules.length == null || req.body.users_email.length == 0) {
+      res.json({ session_valid: true, error: true, response: "Please fill in all fields before proceeding." });
+      return;
+    }
+
+    res.json(await database_connection.add_tutorial(req.body.request_title, req.body.request_description, req.body.request_modules, req.body.users_email, req.body.user_avatar, is_session_valid.new_token));
+  } else {
+    res.json(is_session_valid);
+  }
+
   return;
 });
 
 app.post('/get_all_notifications', async (req, res) => {
-  const validator = require('validator');
+  const verify_jwt_controller = require('./services/verify_jwt');
 
-  for (var key in req.body) {
-    if (req.body[key] === "") {
-      res.json({ error: true, response: "Please fill in all fields before proceeding." });
-      return;
-    }
+  let is_session_valid;
+
+  if (!localhost) {
+    is_session_valid = await verify_jwt_controller.verify_jwt(req.body.token, req.body.users_email);
+  } else {
+    is_session_valid = { session_valid: true, new_token: "" };
   }
 
-  res.json(await database_connection.get_all_users_notifications(validator.escape(req.body.users_email), req.body.user_tutor));
+  if (is_session_valid.session_valid) {
+    const validator = require('validator');
+
+    res.json(await database_connection.get_all_users_notifications(validator.escape(req.body.users_email), req.body.user_tutor, is_session_valid.new_token));
+  } else {
+    res.json(is_session_valid);
+  }
   return;
 });
 
 app.post('/set_notification_to_read', async (req, res) => {
-  res.json(await database_connection.set_notification_to_read(req.body.notification_id));
+  const verify_jwt_controller = require('./services/verify_jwt');
+
+  //let is_session_valid = await verify_jwt_controller.verify_jwt("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjoibmlraXRvODg4J2dtYWlsLmNvbSIsImlhdCI6MTU4OTgxNzY1MSwiZXhwIjoxNTg5ODE3NzExLCJpc3MiOiJodHRwczovL3N0dWRlbnRsb29wLmNvbSJ9.Z2P3FM7GBYb9dtSi5nGP1soOcy5vgFNE0bwqpS-iQGY", "nikito888@gmail.com");
+  let is_session_valid;
+
+  if (!localhost) {
+    is_session_valid = await verify_jwt_controller.verify_jwt(req.body.token, req.body.users_email);
+  } else {
+    is_session_valid = { session_valid: true, new_token: "" };
+  }
+
+  if (is_session_valid.session_valid) {
+    res.json(await database_connection.set_notification_to_read(req.body.notification_id, is_session_valid.new_token));
+  } else {
+    res.json(is_session_valid);
+  }
+
   return;
 });
 
 app.post('/get_all_posts', async (req, res) => {
-  res.json(await database_connection.get_all_elegible_posts(req.body.email, req.body.user_modules));
+  const verify_jwt_controller = require('./services/verify_jwt');
+
+  //let is_session_valid = await verify_jwt_controller.verify_jwt("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjoibmlraXRvODg4J2dtYWlsLmNvbSIsImlhdCI6MTU4OTgxNzY1MSwiZXhwIjoxNTg5ODE3NzExLCJpc3MiOiJodHRwczovL3N0dWRlbnRsb29wLmNvbSJ9.Z2P3FM7GBYb9dtSi5nGP1soOcy5vgFNE0bwqpS-iQGY", "nikito888@gmail.com");
+  let is_session_valid;
+
+  if (!localhost) {
+    is_session_valid = await verify_jwt_controller.verify_jwt(req.body.token, req.body.users_email);
+  } else {
+    is_session_valid = { session_valid: true, new_token: "" };
+  }
+
+  if (is_session_valid.session_valid) {
+    res.json(await database_connection.get_all_elegible_posts(req.body.email, req.body.user_modules, is_session_valid.new_token));
+  } else {
+    res.json(is_session_valid);
+  }
   return;
 });
 
 app.post('/post_accepted', async (req, res) => {
-  res.json(await database_connection.accept_post(req.body.tutor_email, req.body.tutor_name, req.body.post_id, req.body.user_avatar));
+  const verify_jwt_controller = require('./services/verify_jwt');
+
+  //let is_session_valid = await verify_jwt_controller.verify_jwt("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjoibmlraXRvODg4J2dtYWlsLmNvbSIsImlhdCI6MTU4OTgxNzY1MSwiZXhwIjoxNTg5ODE3NzExLCJpc3MiOiJodHRwczovL3N0dWRlbnRsb29wLmNvbSJ9.Z2P3FM7GBYb9dtSi5nGP1soOcy5vgFNE0bwqpS-iQGY", "nikito888@gmail.com");
+  let is_session_valid;
+
+  if (!localhost) {
+    is_session_valid = await verify_jwt_controller.verify_jwt(req.body.token, req.body.users_email);
+  } else {
+    is_session_valid = { session_valid: true, new_token: "" };
+  }
+
+  if (is_session_valid.session_valid) {
+    const validator = require('validator');
+
+    res.json(await database_connection.accept_post(req.body.tutor_email, req.body.tutor_name, req.body.post_id, req.body.user_avatar, is_session_valid.new_token));
+  } else {
+    res.json(is_session_valid);
+  }
+
   return;
 });
 
 app.post('/get_notification_posts', async (req, res) => {
-  res.json(await database_connection.get_notification_posts(req.body.notification_posts_id));
+  const verify_jwt_controller = require('./services/verify_jwt');
+
+  //let is_session_valid = await verify_jwt_controller.verify_jwt("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjoibmlraXRvODg4J2dtYWlsLmNvbSIsImlhdCI6MTU4OTgxNzY1MSwiZXhwIjoxNTg5ODE3NzExLCJpc3MiOiJodHRwczovL3N0dWRlbnRsb29wLmNvbSJ9.Z2P3FM7GBYb9dtSi5nGP1soOcy5vgFNE0bwqpS-iQGY", "nikito888@gmail.com");
+  let is_session_valid;
+
+  if (!localhost) {
+    is_session_valid = await verify_jwt_controller.verify_jwt(req.body.token, req.body.users_email);
+  } else {
+    is_session_valid = { session_valid: true, new_token: "" };
+  }
+
+  if (is_session_valid.session_valid) {
+    res.json(await database_connection.get_notification_posts(req.body.notification_posts_id, is_session_valid.new_token));
+  } else {
+    res.json(is_session_valid);
+  }
+
   return;
 });
 
 //TEST THIS
 app.post('/get_my_requested_posts', async (req, res) => {
-  res.json(await database_connection.get_all_users_tutorials(req.body.users_email));
+  const verify_jwt_controller = require('./services/verify_jwt');
+
+  //let is_session_valid = await verify_jwt_controller.verify_jwt("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjoibmlraXRvODg4J2dtYWlsLmNvbSIsImlhdCI6MTU4OTgxNzY1MSwiZXhwIjoxNTg5ODE3NzExLCJpc3MiOiJodHRwczovL3N0dWRlbnRsb29wLmNvbSJ9.Z2P3FM7GBYb9dtSi5nGP1soOcy5vgFNE0bwqpS-iQGY", "nikito888@gmail.com");
+  let is_session_valid;
+
+  if (!localhost) {
+    is_session_valid = await verify_jwt_controller.verify_jwt(req.body.token, req.body.users_email);
+  } else {
+    is_session_valid = { session_valid: true, new_token: "" };
+  }
+
+  if (is_session_valid.session_valid) {
+    res.json(await database_connection.get_all_users_tutorials(req.body.users_email, is_session_valid.new_token));
+  } else {
+    res.json(is_session_valid);
+  }
   return;
 });
 
 //TEST THIS
 app.post('/get_all_tutor_tutorials', async (req, res) => {
-  res.json(await database_connection.get_all_tutor_tutorials(req.body.users_email));
+  const verify_jwt_controller = require('./services/verify_jwt');
+
+  //let is_session_valid = await verify_jwt_controller.verify_jwt("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjoibmlraXRvODg4J2dtYWlsLmNvbSIsImlhdCI6MTU4OTgxNzY1MSwiZXhwIjoxNTg5ODE3NzExLCJpc3MiOiJodHRwczovL3N0dWRlbnRsb29wLmNvbSJ9.Z2P3FM7GBYb9dtSi5nGP1soOcy5vgFNE0bwqpS-iQGY", "nikito888@gmail.com");
+  let is_session_valid;
+
+  if (!localhost) {
+    is_session_valid = await verify_jwt_controller.verify_jwt(req.body.token, req.body.users_email);
+  } else {
+    is_session_valid = { session_valid: true, new_token: "" };
+  }
+
+  if (is_session_valid.session_valid) {
+    res.json(await database_connection.get_all_tutor_tutorials(req.body.users_email, is_session_valid.new_token));
+  } else {
+    res.json(is_session_valid);
+  }
+
   return;
 });
 
 //TEST THIS
 app.post('/offer_agreement', async (req, res) => {
-  if (req.body.tutor_signature == "") {
-    res.json({ error: true, response: "Please fill in all fields before proceeding." });
-  }
+  const verify_jwt_controller = require('./services/verify_jwt');
 
-  let is_action_available = await database_connection.action_available("offer_agreement", req.body.tutorial_id);
+  //let is_session_valid = await verify_jwt_controller.verify_jwt("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjoibmlraXRvODg4J2dtYWlsLmNvbSIsImlhdCI6MTU4OTgxNzY1MSwiZXhwIjoxNTg5ODE3NzExLCJpc3MiOiJodHRwczovL3N0dWRlbnRsb29wLmNvbSJ9.Z2P3FM7GBYb9dtSi5nGP1soOcy5vgFNE0bwqpS-iQGY", "nikito888@gmail.com");
+  let is_session_valid;
 
-  if (is_action_available.action_available) {
-    const offer_agreement = require('./services/offer_agreement');
-    res.json(await offer_agreement.offer_agreement(database_connection, req.body.tutorial_id, req.body.tutorial_date.substring(0, 10), req.body.tutorial_time, req.body.tutorial_end_time, req.body.tutor_signature, req.body.tutor_avatar));
+  if (!localhost) {
+    is_session_valid = await verify_jwt_controller.verify_jwt(req.body.token, req.body.users_email);
   } else {
-    res.json({ action_available: false });
+    is_session_valid = { session_valid: true, new_token: "" };
   }
+
+  if (is_session_valid.session_valid) {
+    if (req.body.tutor_signature == "") {
+      res.json({ error: true, response: "Please fill in all fields before proceeding." });
+    }
+
+    let is_action_available = await database_connection.action_available("offer_agreement", req.body.tutorial_id);
+
+    if (is_action_available.action_available) {
+      const offer_agreement = require('./services/offer_agreement');
+      res.json(await offer_agreement.offer_agreement(database_connection, req.body.tutorial_id, req.body.tutorial_date.substring(0, 10), req.body.tutorial_time, req.body.tutorial_end_time, req.body.tutor_signature, req.body.tutor_avatar, is_session_valid.new_token));
+    } else {
+      res.json({ session_valid: true, new_token: is_session_valid.new_token, action_available: false });
+    }
+  } else {
+    res.json(is_session_valid);
+  }
+
   return;
 });
 
 //TEST THIS
 app.post('/accept_agreement', async (req, res) => {
-  let is_action_available = await database_connection.action_available("accept_agreement", req.body.tutorial_id);
+  const verify_jwt_controller = require('./services/verify_jwt');
 
-  if (is_action_available.action_available) {
-    const accept_agreement = require('./services/accept_agreement');
-    res.json(await accept_agreement.accept_agreement(database_connection, req.body.tutorial_id, req.body.student_signature));
+  //let is_session_valid = await verify_jwt_controller.verify_jwt("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjoibmlraXRvODg4J2dtYWlsLmNvbSIsImlhdCI6MTU4OTgxNzY1MSwiZXhwIjoxNTg5ODE3NzExLCJpc3MiOiJodHRwczovL3N0dWRlbnRsb29wLmNvbSJ9.Z2P3FM7GBYb9dtSi5nGP1soOcy5vgFNE0bwqpS-iQGY", "nikito888@gmail.com");
+  let is_session_valid;
+
+  if (!localhost) {
+    is_session_valid = await verify_jwt_controller.verify_jwt(req.body.token, req.body.users_email);
   } else {
-    res.json({ action_available: false });
+    is_session_valid = { session_valid: true, new_token: "" };
+  }
+
+  if (is_session_valid.session_valid) {
+    let is_action_available = await database_connection.action_available("accept_agreement", req.body.tutorial_id);
+
+    if (is_action_available.action_available) {
+      const accept_agreement = require('./services/accept_agreement');
+      res.json(await accept_agreement.accept_agreement(database_connection, req.body.tutorial_id, req.body.student_signature, is_session_valid.new_token));
+    } else {
+      res.json({ session_valid: true, new_token: is_session_valid.new_token, action_available: false });
+    }
+  } else {
+    res.json(is_session_valid);
   }
 
   return;
@@ -306,21 +469,52 @@ app.post('/accept_agreement', async (req, res) => {
 
 //TEST THIS
 app.post('/reject_agreement', async (req, res) => {
-  let is_action_available = await database_connection.action_available("reject_agreement", req.body.tutorial_id);
+  const verify_jwt_controller = require('./services/verify_jwt');
 
-  if (is_action_available.action_available) {
-    res.json(await database_connection.reject_agreement(req.body.tutorial_id));
+  //let is_session_valid = await verify_jwt_controller.verify_jwt("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjoibmlraXRvODg4J2dtYWlsLmNvbSIsImlhdCI6MTU4OTgxNzY1MSwiZXhwIjoxNTg5ODE3NzExLCJpc3MiOiJodHRwczovL3N0dWRlbnRsb29wLmNvbSJ9.Z2P3FM7GBYb9dtSi5nGP1soOcy5vgFNE0bwqpS-iQGY", "nikito888@gmail.com");
+  let is_session_valid;
+
+  if (!localhost) {
+    is_session_valid = await verify_jwt_controller.verify_jwt(req.body.token, req.body.users_email);
   } else {
-    res.json({ action_available: false });
+    is_session_valid = { session_valid: true, new_token: "" };
   }
+
+  if (is_session_valid.session_valid) {
+    let is_action_available = await database_connection.action_available("reject_agreement", req.body.tutorial_id);
+
+    if (is_action_available.action_available) {
+      res.json(await database_connection.reject_agreement(req.body.tutorial_id, is_session_valid.new_token));
+    } else {
+      res.json({ session_valid: true, new_token: is_session_valid.new_token, action_available: false });
+    }
+  } else {
+    res.json(is_session_valid);
+  }
+
   return;
 });
 
 //TEST THIS
 app.post('/validate_digital_signatures', async (req, res) => {
-  const verify_digital_signatures_handler = require('./services/verify_digital_signatures.js');
+  const verify_jwt_controller = require('./services/verify_jwt');
 
-  res.json(await verify_digital_signatures_handler.verify_digital_signatures(database_connection, req.body));
+  //let is_session_valid = await verify_jwt_controller.verify_jwt("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjoibmlraXRvODg4J2dtYWlsLmNvbSIsImlhdCI6MTU4OTgxNzY1MSwiZXhwIjoxNTg5ODE3NzExLCJpc3MiOiJodHRwczovL3N0dWRlbnRsb29wLmNvbSJ9.Z2P3FM7GBYb9dtSi5nGP1soOcy5vgFNE0bwqpS-iQGY", "nikito888@gmail.com");
+  let is_session_valid;
+
+  if (!localhost) {
+    is_session_valid = await verify_jwt_controller.verify_jwt(req.body.token, req.body.users_email);
+  } else {
+    is_session_valid = { session_valid: true, new_token: "" };
+  }
+
+  if (is_session_valid.session_valid) {
+    const verify_digital_signatures_handler = require('./services/verify_digital_signatures.js');
+
+    res.json(await verify_digital_signatures_handler.verify_digital_signatures(database_connection, req.body, is_session_valid.new_token));
+  } else {
+    res.json(is_session_valid);
+  }
   return;
 });
 
@@ -337,21 +531,50 @@ app.post('/load_blockchain_content', async (req, res) => {
 
 //TEST THIS
 app.post('/update_avatar', async (req, res) => {
-  const avatar = require('./services/update_avatar');
+  const verify_jwt_controller = require('./services/verify_jwt');
 
-  let response = await avatar.update_avatar(database_connection, req.body.email, req.body.image);
+  //let is_session_valid = await verify_jwt_controller.verify_jwt("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjoibmlraXRvODg4J2dtYWlsLmNvbSIsImlhdCI6MTU4OTgxNzY1MSwiZXhwIjoxNTg5ODE3NzExLCJpc3MiOiJodHRwczovL3N0dWRlbnRsb29wLmNvbSJ9.Z2P3FM7GBYb9dtSi5nGP1soOcy5vgFNE0bwqpS-iQGY", "nikito888@gmail.com");
+  let is_session_valid;
 
-  res.json(response);
+  if (!localhost) {
+    is_session_valid = await verify_jwt_controller.verify_jwt(req.body.token, req.body.users_email);
+  } else {
+    is_session_valid = { session_valid: true, new_token: "" };
+  }
+
+  if (is_session_valid.session_valid) {
+    const avatar = require('./services/update_avatar');
+
+    let response = await avatar.update_avatar(database_connection, req.body.email, req.body.image, is_session_valid.new_token);
+
+    res.json(response);
+  } else {
+    res.json(is_session_valid);
+  }
   return;
 });
 
 //TEST THIS
 app.post('/edit_skills', async (req, res) => {
-  console.log(req.body.skills)
-  Live_Updates_Controller.update_skills(req.body.users_email, req.body.skills);
-  let response = await database_connection.update_user(req.body.users_email, { user_modules: req.body.skills });
+  const verify_jwt_controller = require('./services/verify_jwt');
 
-  res.json(response);
+  //let is_session_valid = await verify_jwt_controller.verify_jwt("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjoibmlraXRvODg4J2dtYWlsLmNvbSIsImlhdCI6MTU4OTgxNzY1MSwiZXhwIjoxNTg5ODE3NzExLCJpc3MiOiJodHRwczovL3N0dWRlbnRsb29wLmNvbSJ9.Z2P3FM7GBYb9dtSi5nGP1soOcy5vgFNE0bwqpS-iQGY", "nikito888@gmail.com");
+  let is_session_valid;
+
+  if (!localhost) {
+    is_session_valid = await verify_jwt_controller.verify_jwt(req.body.token, req.body.users_email);
+  } else {
+    is_session_valid = { session_valid: true, new_token: "" };
+  }
+
+  if (is_session_valid.session_valid) {
+    Live_Updates_Controller.update_skills(req.body.users_email, req.body.skills);
+    let response = await database_connection.update_user(req.body.users_email, { user_modules: req.body.skills });
+
+    res.json({skills: response, session_valid: true, new_token:is_session_valid.new_token});
+  } else {
+    res.json(is_session_valid);
+  }
   return;
 });
 
@@ -432,196 +655,285 @@ app.post('/forgot_password', async (req, res) => {
 });
 
 app.post('/change_password', async (req, res) => {
-  if (req.body.new_password === req.body.password_confirm) {
+  const verify_jwt_controller = require('./services/verify_jwt');
 
-    const bcrypt = require('bcrypt');
-    const saltRounds = 10;
+  //let is_session_valid = await verify_jwt_controller.verify_jwt("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjoibmlraXRvODg4J2dtYWlsLmNvbSIsImlhdCI6MTU4OTgxNzY1MSwiZXhwIjoxNTg5ODE3NzExLCJpc3MiOiJodHRwczovL3N0dWRlbnRsb29wLmNvbSJ9.Z2P3FM7GBYb9dtSi5nGP1soOcy5vgFNE0bwqpS-iQGY", "nikito888@gmail.com");
+  let is_session_valid;
 
-    let user = await database_connection.find_user_by_email(req.body.users_email);
-
-    let pword = await user.response.user_password;
-
-    //let hash2 = await bcrypt.hash(req.body.old_password, saltRounds);
-    // check if old  match
-    let match = await bcrypt.compareSync(req.body.old_password, pword);
-
-    //console.log("Password Old + New Match = ");
-
-    if (await bcrypt.compareSync(req.body.new_password, pword) == true) {
-      response = "New Password must be not the same as old Password";
-      res.json(response);
-      return;
-    }
-
-    if (match == true) {
-      //const validator = require('validator');
-      const password_input = require('./services/registration/filter_registration_input');
-
-      //Valiate user data
-      let valid = password_input.validate_password_input(req.body.users_email, req.body.new_password, req.body.password_confirm);
-      if (!valid.error) {
-
-        //hash password       
-        let hash = await bcrypt.hash(req.body.new_password, saltRounds);
-        // update doc with new hashed  password
-        database_connection.change_user_password(req.body.users_email, hash);
-        response = "Password changed";
-        res.json(response);
-        return;
-
-      }
-      else {
-        response = "Password is not valid format";
-        res.json(response);
-        return;
-      }
-    } else {
-      response = "Old Password Incorrect";
-      res.json(response);
-      return;
-    }
-
-  }
-  else {
-    response = "Confirm & New password did not match";
-    res.json(response);
-    return;
+  if (!localhost) {
+    is_session_valid = await verify_jwt_controller.verify_jwt(req.body.token, req.body.users_email);
+  } else {
+    is_session_valid = { session_valid: true, new_token: "" };
   }
 
+  if (is_session_valid.session_valid) {
+    if (req.body.new_password === req.body.password_confirm) {
 
+      const bcrypt = require('bcrypt');
+      const saltRounds = 10;
+
+      let user = await database_connection.find_user_by_email(req.body.users_email);
+
+      let pword = await user.response.user_password;
+
+      //let hash2 = await bcrypt.hash(req.body.old_password, saltRounds);
+      // check if old  match
+      let match = await bcrypt.compareSync(req.body.old_password, pword);
+
+      //console.log("Password Old + New Match = ");
+
+      if (await bcrypt.compareSync(req.body.new_password, pword) == true) {
+        response = "New Password must be not the same as old Password";
+        res.json({ session_valid: true, new_token: is_session_valid.new_token, response: response });
+        return;
+      }
+
+      if (match == true) {
+        //const validator = require('validator');
+        const password_input = require('./services/registration/filter_registration_input');
+
+        //Valiate user data
+        let valid = password_input.validate_password_input(req.body.users_email, req.body.new_password, req.body.password_confirm);
+        if (!valid.error) {
+
+          //hash password       
+          let hash = await bcrypt.hash(req.body.new_password, saltRounds);
+          // update doc with new hashed  password
+          database_connection.change_user_password(req.body.users_email, hash);
+          response = "Password changed";
+          res.json({ session_valid: true, new_token: is_session_valid.new_token, response: response });
+          return;
+
+        }
+        else {
+          response = "Password is not valid format";
+          res.json(response);
+          return;
+        }
+      } else {
+        response = "Old Password Incorrect";
+        res.json({ session_valid: true, new_token: is_session_valid.new_token, response: response });
+        return;
+      }
+    }
+    else {
+      response = "Confirm & New password did not match";
+      res.json({ session_valid: true, new_token: is_session_valid.new_token, response: response });
+      return;
+    }
+  } else {
+    res.json(is_session_valid);
+  }
+
+  return;
 });
 
 app.post('/change_phone', async (req, res) => {
-  let check = await database_connection.change_user_phone(req.body.users_email, req.body.user_phone_number);
-  console.log(check);
+  const verify_jwt_controller = require('./services/verify_jwt');
 
-  if (check.error == true) {
-    res.json(check.response);
-    return;
+  //let is_session_valid = await verify_jwt_controller.verify_jwt("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjoibmlraXRvODg4J2dtYWlsLmNvbSIsImlhdCI6MTU4OTgxNzY1MSwiZXhwIjoxNTg5ODE3NzExLCJpc3MiOiJodHRwczovL3N0dWRlbnRsb29wLmNvbSJ9.Z2P3FM7GBYb9dtSi5nGP1soOcy5vgFNE0bwqpS-iQGY", "nikito888@gmail.com");
+  let is_session_valid;
+
+  if (!localhost) {
+    is_session_valid = await verify_jwt_controller.verify_jwt(req.body.token, req.body.users_email);
   } else {
-    res.json(check.response);
-    return;
+    is_session_valid = { session_valid: true, new_token: "" };
   }
 
+  if (is_session_valid.session_valid) {
+    let check = await database_connection.change_user_phone(req.body.users_email, req.body.user_phone_number);
+    console.log(check);
+
+    if (check.error == true) {
+      res.json({ response: check.response, session_valid: true, new_token: is_session_valid.new_token });
+      return;
+    } else {
+      res.json({ response: check.response, session_valid: true, new_token: is_session_valid.new_token });
+      return;
+    }
+  } else {
+    res.json(is_session_valid);
+  }
 });
 
 app.post('/cancel_tutorial', async (req, res) => {
-  const Blockchain = require('./services/Blockchain');
-  const blockchain_controller = new Blockchain(global.blockchain_api_key);
+  const verify_jwt_controller = require('./services/verify_jwt');
 
-  let tutorial = req.body.tutorial;
+  //let is_session_valid = await verify_jwt_controller.verify_jwt("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjoibmlraXRvODg4J2dtYWlsLmNvbSIsImlhdCI6MTU4OTgxNzY1MSwiZXhwIjoxNTg5ODE3NzExLCJpc3MiOiJodHRwczovL3N0dWRlbnRsb29wLmNvbSJ9.Z2P3FM7GBYb9dtSi5nGP1soOcy5vgFNE0bwqpS-iQGY", "nikito888@gmail.com");
+  let is_session_valid;
 
-  let is_action_available = await database_connection.action_available("cancel", tutorial._id);
-
-  if (is_action_available.action_available) {
-    //Remove tutorial
-    let response = await database_connection.delete_tutorial(req.body.tutorial_id);
-
-    let student_notification = await database_connection.create_notification("Tutorial canceled", "The tutorial '" + tutorial.post_title + "' has been cancelled.", tutorial.std_email, ["Tutorial cancelled"], { post_id: req.body.tutorial_id }, req.body.avatar);
-    let tutor_notification;
-    let tutor_exists = false;
-
-    if (typeof tutorial.post_tutor_email !== "undefined") {
-      tutor_exists = true;
-
-      let tutor_avatar = await database_connection.find_id_by_email(tutorial.post_tutor_email);
-      tutor_notification = await database_connection.create_notification("Tutorial canceled", "The tutorial '" + tutorial.post_title + "' has been cancelled.", tutorial.post_tutor_email, ["Tutorial cancelled"], { post_id: req.body.tutorial_id }, tutor_avatar.response.user_avatar);
-    }
-
-    //get_avatar(email, is_tutor);
-
-    //let new_tutorial = await database_connection.add_tutorial(req.body.tutorial.post_title, req.body.tutorial.post_desc, req.body.tutorial.post_modules, req.body.tutorial.std_email, req.body.tutorial.std_avatar);
-
-    blockchain_controller.add_transaction_to_blockchain(req.body.tutorial_id, { title: "Tutorial canceled", content: "The tutorial '" + tutorial.post_title + "' has been canceled." });
-
-    res.json({ action_available: true, student_notification: student_notification, tutor_notification: tutor_notification, tutor_exists: tutor_exists });
+  if (!localhost) {
+    is_session_valid = await verify_jwt_controller.verify_jwt(req.body.token, req.body.users_email);
   } else {
-    res.json({ action_available: false });
+    is_session_valid = { session_valid: true, new_token: "" };
+  }
+
+  if (is_session_valid.session_valid) {
+    const Blockchain = require('./services/Blockchain');
+    const blockchain_controller = new Blockchain(global.blockchain_api_key);
+
+    let tutorial = req.body.tutorial;
+
+    let is_action_available = await database_connection.action_available("cancel", tutorial._id);
+
+    if (is_action_available.action_available) {
+      //Remove tutorial
+      let response = await database_connection.delete_tutorial(req.body.tutorial_id);
+
+      let student_notification = await database_connection.create_notification("Tutorial canceled", "The tutorial '" + tutorial.post_title + "' has been cancelled.", tutorial.std_email, ["Tutorial cancelled"], { post_id: req.body.tutorial_id }, req.body.avatar);
+      let tutor_notification;
+      let tutor_exists = false;
+
+      if (typeof tutorial.post_tutor_email !== "undefined") {
+        tutor_exists = true;
+
+        let tutor_avatar = await database_connection.find_id_by_email(tutorial.post_tutor_email);
+        tutor_notification = await database_connection.create_notification("Tutorial canceled", "The tutorial '" + tutorial.post_title + "' has been cancelled.", tutorial.post_tutor_email, ["Tutorial cancelled"], { post_id: req.body.tutorial_id }, tutor_avatar.response.user_avatar);
+      }
+
+      //get_avatar(email, is_tutor);
+
+      //let new_tutorial = await database_connection.add_tutorial(req.body.tutorial.post_title, req.body.tutorial.post_desc, req.body.tutorial.post_modules, req.body.tutorial.std_email, req.body.tutorial.std_avatar);
+
+      blockchain_controller.add_transaction_to_blockchain(req.body.tutorial_id, { title: "Tutorial canceled", content: "The tutorial '" + tutorial.post_title + "' has been canceled." });
+
+      res.json({ session_valid: true, new_token: is_session_valid.new_token, action_available: true, student_notification: student_notification, tutor_notification: tutor_notification, tutor_exists: tutor_exists });
+    } else {
+      res.json({ session_valid: true, new_token: is_session_valid.new_token, action_available: false });
+    }
+  } else {
+    res.json(is_session_valid);
   }
   return;
 });
 
 app.post('/begin_tutorial', async (req, res) => {
-  let is_action_available = await database_connection.action_available("begin_tutorial", req.body.tutorial_id);
+  const verify_jwt_controller = require('./services/verify_jwt');
 
-  if (is_action_available.action_available) {
-    const Blockchain = require('./services/Blockchain');
-    const blockchain_controller = new Blockchain(global.blockchain_api_key);
+  //let is_session_valid = await verify_jwt_controller.verify_jwt("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjoibmlraXRvODg4J2dtYWlsLmNvbSIsImlhdCI6MTU4OTgxNzY1MSwiZXhwIjoxNTg5ODE3NzExLCJpc3MiOiJodHRwczovL3N0dWRlbnRsb29wLmNvbSJ9.Z2P3FM7GBYb9dtSi5nGP1soOcy5vgFNE0bwqpS-iQGY", "nikito888@gmail.com");
+  let is_session_valid;
 
-    //Begin tutorial
-    let tutorial = await database_connection.begin_tutorial(req.body.tutorial_id);
-
-    //CHECK DKIT LDAP SERVERS!!!!
-    let student_number = req.body.student_number;
-
-    let student_notification = await database_connection.create_notification("Tutorial started", "The tutorial '" + tutorial.post_title + "' has been started! Goodluck!", tutorial.std_email, ["Tutorial started"], { post_id: req.body.tutorial_id }, req.body.avatar);
-
-    //Get tutors avatar
-    let tutor_avatar = await database_connection.find_id_by_email(tutorial.post_tutor_email);
-    let tutor_notification = await database_connection.create_notification("Tutorial started", "The tutorial '" + tutorial.post_title + "' has been started! Goodluck!", tutorial.post_tutor_email, ["Tutorial started"], { post_id: req.body.tutorial_id }, tutor_avatar.response.user_avatar);
-
-    blockchain_controller.add_transaction_to_blockchain(req.body.tutorial_id, { title: "Tutorial started", content: "The tutorial '" + tutorial.post_title + "' has just been started by the tutor." });
-
-    res.json({ action_available: true, updated_tutorial: tutorial, student_notification: student_notification, tutor_notification: tutor_notification });
+  if (!localhost) {
+    is_session_valid = await verify_jwt_controller.verify_jwt(req.body.token, req.body.users_email);
   } else {
-    res.json({ action_available: false });
+    is_session_valid = { session_valid: true, new_token: "" };
+  }
+
+  if (is_session_valid.session_valid) {
+    let is_action_available = await database_connection.action_available("begin_tutorial", req.body.tutorial_id);
+
+    if (is_action_available.action_available) {
+      const Blockchain = require('./services/Blockchain');
+      const blockchain_controller = new Blockchain(global.blockchain_api_key);
+
+      //Begin tutorial
+      let tutorial = await database_connection.begin_tutorial(req.body.tutorial_id);
+
+      //CHECK DKIT LDAP SERVERS!!!!
+      let student_number = req.body.student_number;
+
+      let student_notification = await database_connection.create_notification("Tutorial started", "The tutorial '" + tutorial.post_title + "' has been started! Goodluck!", tutorial.std_email, ["Tutorial started"], { post_id: req.body.tutorial_id }, req.body.avatar);
+
+      //Get tutors avatar
+      let tutor_avatar = await database_connection.find_id_by_email(tutorial.post_tutor_email);
+      let tutor_notification = await database_connection.create_notification("Tutorial started", "The tutorial '" + tutorial.post_title + "' has been started! Goodluck!", tutorial.post_tutor_email, ["Tutorial started"], { post_id: req.body.tutorial_id }, tutor_avatar.response.user_avatar);
+
+      blockchain_controller.add_transaction_to_blockchain(req.body.tutorial_id, { title: "Tutorial started", content: "The tutorial '" + tutorial.post_title + "' has just been started by the tutor." });
+
+      res.json({ session_valid: true, new_token: is_session_valid.new_token, action_available: true, updated_tutorial: tutorial, student_notification: student_notification, tutor_notification: tutor_notification });
+    } else {
+      res.json({ session_valid: true, new_token: is_session_valid.new_token, action_available: false });
+    }
+  } else {
+    res.json(is_session_valid);
   }
 
   return;
 });
 
 app.post('/finish_tutorial', async (req, res) => {
-  let is_action_available = await database_connection.action_available("end_tutorial", req.body.tutorial_id);
+  const verify_jwt_controller = require('./services/verify_jwt');
 
-  if (is_action_available.action_available) {
-    const Blockchain = require('./services/Blockchain');
-    const blockchain_controller = new Blockchain(global.blockchain_api_key);
+  //let is_session_valid = await verify_jwt_controller.verify_jwt("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjoibmlraXRvODg4J2dtYWlsLmNvbSIsImlhdCI6MTU4OTgxNzY1MSwiZXhwIjoxNTg5ODE3NzExLCJpc3MiOiJodHRwczovL3N0dWRlbnRsb29wLmNvbSJ9.Z2P3FM7GBYb9dtSi5nGP1soOcy5vgFNE0bwqpS-iQGY", "nikito888@gmail.com");
+  let is_session_valid;
 
-    //Begin tutorial
-    let tutorial = await database_connection.finish_tutorial(req.body.tutorial_id);
-
-    let student_notification = await database_connection.create_notification("Tutorial finished", "The tutorial '" + tutorial.post_title + "' has been completed! <br><br> Thank you for using Student Loop!", tutorial.std_email, ["Tutorial finished"], { post_id: req.body.tutorial_id }, req.body.avatar);
-
-    //Get tutors avatar
-    let tutor_avatar = await database_connection.find_id_by_email(tutorial.post_tutor_email);
-    let tutor_notification = await database_connection.create_notification("Tutorial finished", "The tutorial '" + tutorial.post_title + "' has been completed! <br><br> Thank you for using Student Loop!", tutorial.post_tutor_email, ["Tutorial finished"], { post_id: req.body.tutorial_id }, tutor_avatar.response.user_avatar);
-
-    blockchain_controller.add_transaction_to_blockchain(req.body.tutorial_id, { title: "Tutorial finished", content: "The tutorial '" + tutorial.post_title + "' has just been finished by the tutor." });
-
-    res.json({ action_available: true, updated_tutorial: tutorial, student_notification: student_notification, tutor_notification: tutor_notification });
+  if (!localhost) {
+    is_session_valid = await verify_jwt_controller.verify_jwt(req.body.token, req.body.users_email);
   } else {
-    res.json({ action_available: false });
+    is_session_valid = { session_valid: true, new_token: "" };
   }
+
+  if (is_session_valid.session_valid) {
+    let is_action_available = await database_connection.action_available("end_tutorial", req.body.tutorial_id);
+
+    if (is_action_available.action_available) {
+      const Blockchain = require('./services/Blockchain');
+      const blockchain_controller = new Blockchain(global.blockchain_api_key);
+
+      //Begin tutorial
+      let tutorial = await database_connection.finish_tutorial(req.body.tutorial_id);
+
+      let student_notification = await database_connection.create_notification("Tutorial finished", "The tutorial '" + tutorial.post_title + "' has been completed! <br><br> Thank you for using Student Loop!", tutorial.std_email, ["Tutorial finished"], { post_id: req.body.tutorial_id }, req.body.avatar);
+
+      //Get tutors avatar
+      let tutor_avatar = await database_connection.find_id_by_email(tutorial.post_tutor_email);
+      let tutor_notification = await database_connection.create_notification("Tutorial finished", "The tutorial '" + tutorial.post_title + "' has been completed! <br><br> Thank you for using Student Loop!", tutorial.post_tutor_email, ["Tutorial finished"], { post_id: req.body.tutorial_id }, tutor_avatar.response.user_avatar);
+
+      blockchain_controller.add_transaction_to_blockchain(req.body.tutorial_id, { title: "Tutorial finished", content: "The tutorial '" + tutorial.post_title + "' has just been finished by the tutor." });
+
+      res.json({ session_valid: true, new_token: is_session_valid.new_token, action_available: true, updated_tutorial: tutorial, student_notification: student_notification, tutor_notification: tutor_notification });
+    } else {
+      res.json({ session_valid: true, new_token: is_session_valid.new_token, action_available: false });
+    }
+  } else {
+    res.json(is_session_valid);
+  }
+
   return;
 });
 
 app.post('/rate_tutor', async (req, res) => {
-  let is_action_available = await database_connection.action_available("rate", req.body.tutorial_id);
+  const verify_jwt_controller = require('./services/verify_jwt');
 
-  if (is_action_available.action_available) {
-    const Blockchain = require('./services/Blockchain');
-    const blockchain_controller = new Blockchain(global.blockchain_api_key);
+  //let is_session_valid = await verify_jwt_controller.verify_jwt("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjoibmlraXRvODg4J2dtYWlsLmNvbSIsImlhdCI6MTU4OTgxNzY1MSwiZXhwIjoxNTg5ODE3NzExLCJpc3MiOiJodHRwczovL3N0dWRlbnRsb29wLmNvbSJ9.Z2P3FM7GBYb9dtSi5nGP1soOcy5vgFNE0bwqpS-iQGY", "nikito888@gmail.com");
+  let is_session_valid;
 
-    //Rate tutor
-    let tutor = await database_connection.find_id_by_email(req.body.tutorial.post_tutor_email);
-    let previous_ratings = tutor.response.past_ratings;
-    let total_ratings = tutor.response.total_ratings;
-    let rating = tutor.response.tutor_rating;
-
-    previous_ratings.push(req.body.rating);
-    total_ratings++;
-
-    rating = (previous_ratings.reduce((a, b) => parseFloat(a) + parseFloat(b), 0) / total_ratings);
-    rating = Math.round(rating);
-
-    let rating_update_response = await database_connection.rate_tutor(req.body.tutorial.post_tutor_email, rating, previous_ratings, total_ratings);
-    let new_tutorial = await database_connection.update_post(req.body.tutorial_id, { tutor_rated: true, comment: req.body.comment });
-
-    blockchain_controller.add_transaction_to_blockchain(req.body.tutorial_id, { title: "Tutor has been rated", content: "The student has give you a rating of " + req.body.rating + "/5 for the tutorial '" + req.body.tutorial.post_title + "'." });
-
-    res.json({ action_available: true, updated_tutorial: new_tutorial });
+  if (!localhost) {
+    is_session_valid = await verify_jwt_controller.verify_jwt(req.body.token, req.body.users_email);
   } else {
-    res.json({ action_available: false });
+    is_session_valid = { session_valid: true, new_token: "" };
+  }
+
+  if (is_session_valid.session_valid) {
+    let is_action_available = await database_connection.action_available("rate", req.body.tutorial_id);
+
+    if (is_action_available.action_available) {
+      const Blockchain = require('./services/Blockchain');
+      const blockchain_controller = new Blockchain(global.blockchain_api_key);
+
+      //Rate tutor
+      let tutor = await database_connection.find_id_by_email(req.body.tutorial.post_tutor_email);
+      let previous_ratings = tutor.response.past_ratings;
+      let total_ratings = tutor.response.total_ratings;
+      let rating = tutor.response.tutor_rating;
+
+      previous_ratings.push(req.body.rating);
+      total_ratings++;
+
+      rating = (previous_ratings.reduce((a, b) => parseFloat(a) + parseFloat(b), 0) / total_ratings);
+      rating = Math.round(rating);
+
+      let rating_update_response = await database_connection.rate_tutor(req.body.tutorial.post_tutor_email, rating, previous_ratings, total_ratings);
+      let new_tutorial = await database_connection.update_post(req.body.tutorial_id, { tutor_rated: true, comment: req.body.comment });
+
+      blockchain_controller.add_transaction_to_blockchain(req.body.tutorial_id, { title: "Tutor has been rated", content: "The student has give you a rating of " + req.body.rating + "/5 for the tutorial '" + req.body.tutorial.post_title + "'." });
+
+      res.json({ session_valid: true, new_token: is_session_valid.new_token, action_available: true, rating: rating, updated_tutorial: new_tutorial });
+    } else {
+      res.json({ session_valid: true, new_token: is_session_valid.new_token, action_available: false });
+    }
+  } else {
+    res.json(is_session_valid);
   }
 
   return;
@@ -644,7 +956,7 @@ if (global.localhost) {
     await database_connection.connect();
 
     //DELETE EVERYTHING
-    await database_connection.reset();
+    //await database_connection.reset();
 
     Live_Updates_Controller = new Live_Updates(server, app);
     Live_Updates_Controller.connect();

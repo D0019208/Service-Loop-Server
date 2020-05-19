@@ -76,7 +76,6 @@ let validate_password_input = function validate_password_input(users_email, user
 
     if ( users_password.length === 0 || users_password_confirm.length === 0) {
         return { error: true, response: "Field is empty" };
-        
     }
 
     if (validator.isEmail(users_email)) {
