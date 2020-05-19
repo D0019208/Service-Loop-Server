@@ -272,8 +272,96 @@ describe(' check_if_action_is_available', function () {
         done();
     });
 
-    
+    it('reset should return false', async function (done) {
+        let request_tutorial_res = await database_connection.reset();
+        
+        expect(request_tutorial_res.response).toBe("Notification deleted successfully");
+        done();
+    });
 
+    it('post_agreement_status should return false', async function (done) {
+        let request_tutorial_res = await database_connection.add_tutorial("Unit test title", "Unit test description", ["JavaScript"], "nikito888@gmail.com", "https://d00192082.alwaysdata.net/resources/images/base_user.jpg", "");
+        let update_res = await database_connection.update_post_agreement_status(request_tutorial_res.response[0]._id, {post_status: "In negotiation"}, "");
+        
+        expect(request_tutorial_res.error).toBe(false);
+        done();
+    });
+
+
+    it('begin_tutorial should return false', async function (done) {
+        let request_tutorial_res = await database_connection.add_tutorial("Unit test title", "Unit test description", ["JavaScript"], "nikito888@gmail.com", "https://d00192082.alwaysdata.net/resources/images/base_user.jpg", "");
+        let update_res = await database_connection.begin_tutorial(request_tutorial_res.response[0]._id);
+        
+        expect(update_res._id).toEqual(request_tutorial_res.response[0]._id);
+        done();
+    });
+
+    it('finish_tutorial should return false', async function (done) {
+        let request_tutorial_res = await database_connection.add_tutorial("Unit test title", "Unit test description", ["JavaScript"], "nikito888@gmail.com", "https://d00192082.alwaysdata.net/resources/images/base_user.jpg", "");
+        let update_res = await database_connection.finish_tutorial(request_tutorial_res.response[0]._id);
+        
+        expect(update_res._id).toEqual(request_tutorial_res.response[0]._id);
+        done();
+    });
+
+    it('change_user_password should return false', async function (done) {
+        let request_tutorial_res = await database_connection.change_user_password("micko3722@gmail.com", "Password1!");
+        
+        expect(request_tutorial_res.response).toBe("New Password successfully changed!");
+        done();
+    });
+
+    it('change_user_phone should return false', async function (done) {
+        let request_tutorial_res = await database_connection.change_user_phone("micko3722@gmail.com", "0899854571");
+        
+        expect(request_tutorial_res.response).toBe("New Profile details successfully changed!");
+        done();
+    });
+
+    it('get_avatar should return object with email', async function (done) {
+        let request_tutorial_res = await database_connection.add_tutorial("Unit test title", "Unit test description", ["JavaScript"], "nikito888@gmail.com", "https://d00192082.alwaysdata.net/resources/images/base_user.jpg", "");
+        let get_avata = await database_connection.get_avatar("nikito888@gmail.com", true);
+        
+        expect(request_tutorial_res.error).toBe(false);
+        done();
+    });
+
+    it('get_avatar should return object with email', async function (done) {
+        let request_tutorial_res = await database_connection.add_tutorial("Unit test title", "Unit test description", ["JavaScript"], "nikito888@gmail.com", "https://d00192082.alwaysdata.net/resources/images/base_user.jpg", "");
+        let get_avata = await database_connection.get_avatar("nikito888@gmail.com", false);
+        
+        expect(request_tutorial_res.error).toBe(false);
+        done();
+    });
+
+    it('update_post should return object with email', async function (done) {
+        let request_tutorial_res = await database_connection.add_tutorial("Unit test title", "Unit test description", ["JavaScript"], "nikito888@gmail.com", "https://d00192082.alwaysdata.net/resources/images/base_user.jpg", "");
+        let udpated = await database_connection.update_post(request_tutorial_res.response[0]._id, {std_email: "a@a.a"});
+        
+        expect(udpated._id).toEqual(request_tutorial_res.response[0]._id);
+        done();
+    });
+
+    it('check_room_availability should return false', async function (done) {
+        let room_available = await database_connection.check_room_availability("19-05-2020", "18:00", "19:00");
+
+
+
+        //let request_tutorial_res = await database_connection.add_tutorial("Unit test title", "Unit test description", ["JavaScript"], "nikito888@gmail.com", "https://d00192082.alwaysdata.net/resources/images/base_user.jpg", "");
+        //let udpated = await database_connection.update_post(request_tutorial_res.response[0]._id, {std_email: "a@a.a"});
+        
+        expect(room_available).toBe(false);
+        done();
+    });
+
+    it('check_room_availability should return true', async function (done) {
+        let request_tutorial_res = await database_connection.add_tutorial("Unit test title", "Unit test description", ["JavaScript"], "nikito888@gmail.com", "https://d00192082.alwaysdata.net/resources/images/base_user.jpg", "");
+        let udpated = await database_connection.update_post(request_tutorial_res.response[0]._id, {tutorial_date: "19-05-2020", tutorial_time: "16:00", tutorial_end_time: "20:00"});
+        let room_available = await database_connection.check_room_availability("19-05-2020", "18:00", "19:00");
+        
+        expect(room_available).toBe(true);
+        done();
+    });
 });
 
 // describe(' check room avalibility', function () {

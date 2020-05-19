@@ -661,7 +661,7 @@ class database {
     const Blockchain = require('./Blockchain');
 
     if (typeof global.blockchain_api_key === 'undefined') {
-      global.blockchain_api_key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJBcGlLZXkiOiJSMUg2NVdGLVhCWjRIVkctSEJHV045Ri1EREdHQTJLIiwiQXBpU2VjcmV0IjoiakQ0UG05cHNhU3VZQUMxIiwiUGFzc3BocmFzZSI6ImI5YmIxMzg5MjJjMmIwNTUyMDczYTNiNjUzMzU2NGI1IiwiaWF0IjoxNTg5ODA1ODIyfQ.L7iyzTjyFth6aJcE77r77O-923SpAwnE2q6UvQx_8Bc";
+      global.blockchain_api_key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJBcGlLZXkiOiJNSDdCR0ZHLVNFRTQ1U0QtSFBBRzcxNi1QVDZSMDdUIiwiQXBpU2VjcmV0IjoiZ1l0UGJ4bHJ1NE1uWklWIiwiUGFzc3BocmFzZSI6IjY3NTgxYTY0MTU5NzY1YTdiZjJmYWU1MTdlNWY1ODdiIiwiaWF0IjoxNTg5ODkzODE4fQ.ujfjVv155dishmyf6GLLL-xinFoNBom4tt1FjJy-t_E";
     }
 
     const blockchain_controller = new Blockchain(global.blockchain_api_key);
@@ -1027,6 +1027,7 @@ class database {
         });
     });
   }
+
   begin_tutorial(post_id) {
     const postModel = require('../models/post');
 
@@ -1075,20 +1076,19 @@ class database {
   }
 
   change_user_password(email, password) {
-
     const filter = { user_email: email };
     const update = { user_password: password };
 
-
-    //update user
-    userModel.findOneAndUpdate(filter, update).then(result => {
-      console.log("Password changed")
-      //resolve({ error: false, response: "New Password successfully changed!" });
-    })
-      .catch((exception) => {
-        // resolve({ error: true, response: exception });
-      });
-
+    return new Promise((resolve, reject) => {
+      //update user
+      userModel.findOneAndUpdate(filter, update).then(result => {
+        console.log("Password changed")
+        resolve({ error: false, response: "New Password successfully changed!" });
+      })
+        .catch((exception) => {
+          resolve({ error: true, response: exception });
+        });
+    });
 
   }
 
@@ -1108,11 +1108,8 @@ class database {
         }).catch((exception) => {
           resolve({ error: true, response: exception });
         });
-
-
       });
-    }
-    else {
+    } else {
       return new Promise((resolve, reject) => {
         resolve({ error: true, response: "Phone number is not valid" });
       });
