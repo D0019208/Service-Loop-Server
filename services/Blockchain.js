@@ -34,8 +34,9 @@ class Blockchain {
         if(global.localhost) {
             return "Stop wasting credit!";
         }
-        //var [error, pendingResponse, data] = await this.blockchain.invoke("add_transaction", {}, { args: [key, data] });
-        return {error: false, response: "data"};
+        var [error, pendingResponse, response_data] = await this.blockchain.invoke("add_transaction", {}, { args: [key, data] });
+
+        return {error: false, response: response_data};
     }
 
     async get_transactions_by_key(key) { 
