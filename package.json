@@ -25,7 +25,7 @@
     "pdfkit": "^0.10.0",
     "ringcaptcha-nodejs": "0.0.3",
     "socket.io": "^2.3.0",
-    "validator": "^12.1.0",
+    "validator": "^13.7.0",
     "xooa-sdk": "^1.1.1",
     "xss-filters": "^1.2.7"
   },
